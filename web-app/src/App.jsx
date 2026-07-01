@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import AiChat from './pages/AiChat';
@@ -6,7 +6,7 @@ import DetectionHistory from './pages/DetectionHistory';
 
 function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -14,7 +14,7 @@ function App() {
           <Route path="/history" element={<DetectionHistory />} />
         </Routes>
       </Layout>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 

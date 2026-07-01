@@ -89,10 +89,26 @@ export default function Layout({ children }) {
             Command Center
           </div>
           <div className="flex items-center gap-4">
+            {/* Dynamic System Status */}
             <div className="flex items-center gap-2 bg-surface-container/50 px-3 py-1.5 rounded-full border border-outline-variant/20">
-              <div className="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_rgba(78,222,163,0.6)]"></div>
-              <span className="font-label-mono text-[10px] text-secondary tracking-widest uppercase">System Online</span>
+              {/* For demonstration, we show AI is online but Camera is offline */}
+              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]"></div>
+              <span className="font-label-mono text-[10px] text-yellow-400 tracking-widest uppercase">AI Agent Online</span>
             </div>
+            
+            {/* Language Menu */}
+            <div className="relative group">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/50 border border-outline-variant/20 text-on-surface-variant hover:text-primary transition-colors">
+                <span className="font-label-mono text-[10px] uppercase tracking-wider">EN</span>
+                <span className="material-symbols-outlined text-[16px]">expand_more</span>
+              </button>
+              <div className="absolute right-0 mt-2 w-24 bg-surface-container-high border border-outline-variant/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-primary">TW</button>
+                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant">EN</button>
+                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant">JP</button>
+              </div>
+            </div>
+
             <button className="text-on-surface-variant hover:text-primary transition-colors">
               <span className="material-symbols-outlined">notifications</span>
             </button>
