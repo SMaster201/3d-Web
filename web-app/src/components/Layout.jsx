@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
+const LANGUAGES = [
+  { code: 'EN', label: 'English' },
+  { code: 'TW', label: '繁體中文' },
+  { code: 'JP', label: '日本語' },
+];
+
 export default function Layout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentLang, setCurrentLang] = useState('EN');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Home', path: '/', icon: 'home' },
@@ -89,26 +97,43 @@ export default function Layout({ children }) {
             Command Center
           </div>
           <div className="flex items-center gap-4">
-            {/* Dynamic System Status */}
+            {/* System Status — nothing connected yet → Partial Online */}
             <div className="flex items-center gap-2 bg-surface-container/50 px-3 py-1.5 rounded-full border border-outline-variant/20">
-              <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(250,204,21,0.6)]"></div>
-              <span className="font-label-mono text-[10px] text-yellow-400 tracking-widest uppercase">Partially Online</span>
+              <div className="w-2 h-2 rounded-full bg-outline-variant"></div>
+              <span className="font-label-mono text-[10px] text-outline-variant tracking-widest uppercase">All Offline</span>
             </div>
-            
-            {/* Language Menu */}
-            <div className="relative group">
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/50 border border-outline-variant/20 text-on-surface-variant hover:text-primary transition-colors">
-                <span className="font-label-mono text-[10px] uppercase tracking-wider">EN</span>
+
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setLangMenuOpen(!langMenuOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/50 border border-outline-variant/20 text-on-surface-variant hover:text-primary transition-colors"
+              >
+                <span className="font-label-mono text-[10px] uppercase tracking-wider">{currentLang}</span>
                 <span className="material-symbols-outlined text-[16px]">expand_more</span>
               </button>
-              <div className="absolute right-0 mt-2 w-24 bg-surface-container-high border border-outline-variant/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant transition-colors">TW</button>
-                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono bg-primary/10 text-primary font-bold flex justify-between items-center">
-                  EN
-                  <span className="material-symbols-outlined text-[14px]">check</span>
-                </button>
-                <button className="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant transition-colors">JP</button>
-              </div>
+              {langMenuOpen && (
+                <>
+                  {/* Invisible backdrop to close menu on click-away */}
+                  <div className="fixed inset-0 z-40" onClick={() => setLangMenuOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-32 bg-surface-container-high border border-outline-variant/30 rounded-lg shadow-xl z-50 overflow-hidden">
+                    {LANGUAGES.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => { setCurrentLang(lang.code); setLangMenuOpen(false); }}
+                        className={`w-full px-4 py-2.5 text-left text-[12px] font-label-mono transition-colors flex items-center justify-between ${
+                          currentLang === lang.code
+                            ? 'bg-primary/15 text-primary'
+                            : 'hover:bg-primary/10 text-on-surface-variant'
+                        }`}
+                      >
+                        <span>{lang.code}</span>
+                        <span className="text-[10px] opacity-60">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
             <button className="text-on-surface-variant hover:text-primary transition-colors">
