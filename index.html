@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Aegis Vision ??Command Center</title>
-    <meta name="description" content="Aegis Vision AI Forensics Command Center ??Real-time surveillance monitoring, edge AI inference, and tactical control.">
+    <title>Aegis Vision Command Center</title>
+    <meta name="description"
+        content="Aegis Vision AI Forensics Command Center Real-time surveillance monitoring, edge AI inference, and tactical control.">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -100,9 +105,10 @@
         }
     </script>
 </head>
+
 <body class="font-body-md text-body-md antialiased selection:bg-primary selection:text-on-primary">
-<div id="app-container" class="bg-surface">
-    <!-- TopAppBar -->
+    <div id="app-container" class="bg-surface">
+        <!-- TopAppBar -->
     <header class="flex justify-between items-center h-16 w-full px-8 border-b border-outline-variant/10 bg-surface-container-lowest/40 backdrop-blur-md absolute top-0 z-40" id="top-header" style="left: 263px; width: calc(100% - 263px);">
         <div class="font-headline-lg text-[20px] text-on-surface font-semibold tracking-tight">Command Center</div>
         <div class="flex items-center gap-4">
@@ -111,255 +117,304 @@
                 <span class="material-symbols-outlined text-[14px] text-primary">schedule</span>
                 <span id="system-clock" class="font-label-mono text-[10px] text-primary tracking-widest">--:--:--</span>
             </div>
-            <div class="flex items-center gap-2 bg-surface-container/50 px-3 py-1.5 rounded-full border border-outline-variant/20">
-                <div class="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_rgba(78,222,163,0.6)]"></div>
-                <span class="font-label-mono text-[10px] text-secondary tracking-widest uppercase">System Online</span>
+            <!-- System Status (dynamic) -->
+            <div id="system-status-container" class="flex items-center gap-2 bg-surface-container/50 px-3 py-1.5 rounded-full border border-outline-variant/20">
+                <div id="system-status-dot" class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,68,68,0.6)]"></div>
+                <span id="system-status-text" class="font-label-mono text-[10px] text-error tracking-widest uppercase">System Offline</span>
             </div>
-            <div class="relative group">
-                <button class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/50 border border-outline-variant/20 text-on-surface-variant hover:text-primary transition-colors">
-                    <span class="font-label-mono text-[10px] uppercase tracking-wider">EN</span>
+            <!-- Language Selector -->
+            <div class="relative" id="lang-selector">
+                <button id="lang-toggle-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/50 border border-outline-variant/20 text-on-surface-variant hover:text-primary transition-colors">
+                    <span id="lang-current" class="font-label-mono text-[10px] uppercase tracking-wider">EN</span>
                     <span class="material-symbols-outlined text-[16px]">expand_more</span>
                 </button>
-                <div class="absolute right-0 mt-2 w-24 bg-surface-container-high border border-outline-variant/30 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                    <button class="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-primary">TW</button>
-                    <button class="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant">EN</button>
-                    <button class="w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant">JP</button>
+                <div id="lang-dropdown" class="absolute right-0 mt-2 w-28 bg-surface-container-high border border-outline-variant/30 rounded-lg shadow-xl opacity-0 invisible transition-all z-50 overflow-hidden">
+                    <button data-lang="TW" class="lang-option w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant transition-colors">TW</button>
+                    <button data-lang="EN" class="lang-option lang-btn-active w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant transition-colors">EN</button>
+                    <button data-lang="JP" class="lang-option w-full px-4 py-2 text-left text-[12px] font-label-mono hover:bg-primary/10 text-on-surface-variant transition-colors">JP</button>
                 </div>
             </div>
-            <button class="text-on-surface-variant hover:text-primary transition-colors">
-                <span class="material-symbols-outlined">notifications</span>
-            </button>
+            <!-- Notification Bell -->
+            <div class="relative" id="notification-wrapper">
+                <button id="notification-bell" class="relative text-on-surface-variant hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span id="notification-badge" class="notification-badge"></span>
+                </button>
+                <div id="notification-panel" class="notification-panel">
+                    <div class="notif-header flex items-center justify-between">
+                        <span>Notifications</span>
+                        <span id="notif-count" class="text-primary">0</span>
+                    </div>
+                    <div id="notif-list">
+                        <div class="notif-empty">
+                            <span class="material-symbols-outlined text-[24px] text-outline mb-2 block">notifications_off</span>
+                            No new notifications
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- SideNavBar -->
-    <nav class="fixed h-full w-[260px] left-0 top-0 transition-all duration-300 ease-in-out z-50 border-r border-outline-variant/30 bg-surface-container/60 backdrop-blur-md shadow-2xl shadow-primary/10 overflow-hidden" id="sidebar">
-        <button class="absolute z-50 text-on-surface-variant hover:text-primary transition-all duration-300 hover:bg-surface-bright/50 p-1.5 rounded-full flex items-center justify-center w-[36px] h-[36px] top-[24px] right-[16px]" id="menu-toggle">
-            <span class="material-symbols-outlined text-lg">menu</span>
-        </button>
-        <div class="w-[260px] h-full flex flex-col py-gutter px-4" id="sidebar-content">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-8 h-[36px]">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
-                        <span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">visibility</span>
-                    </div>
-                    <div>
-                        <h1 class="font-display-lg text-[18px] font-bold text-primary tracking-tight leading-none text-glow">Aegis Vision</h1>
-                        <span class="font-label-mono text-[10px] text-on-surface-variant uppercase tracking-wider">AI Forensics</span>
-                    </div>
-                </div>
-                <div class="w-[36px]"></div>
-            </div>
-            <!-- Navigation Links -->
-            <div class="flex flex-col gap-2 flex-grow">
-                <a id="nav-home" data-nav class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent" href="index.html">
-                    <span class="material-symbols-outlined text-[20px]">home</span>
-                    Home
-                </a>
-                <a id="nav-history" data-nav class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent" href="scripts/detection_history.html">
-                    <span class="material-symbols-outlined text-[20px]">history</span>
-                    Detection History
-                </a>
-                <a id="nav-chat" data-nav class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent" href="scripts/ai_chat.html">
-                    <span class="material-symbols-outlined text-[20px]">forum</span>
-                    AI Chat
-                </a>
-            </div>
-            <!-- Footer -->
-            <div class="mt-auto pt-4 border-t border-outline-variant/30 flex justify-between items-center px-2">
-                <a id="nav-profile-footer" class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-bright/50" title="Profile" href="scripts/user_profile.html">
-                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_circle</span>
-                </a>
-                <a id="nav-settings-footer" class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-bright/50" title="Settings" href="scripts/settings.html">
-                    <span class="material-symbols-outlined">settings</span>
-                </a>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content Area -->
-    <main class="ml-[260px] pt-16 h-full flex flex-col p-gutter gap-gutter bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-surface-container-low via-background to-background max-h-[calc(1080px-64px)]" id="main-content" style="margin-left: 263px;">
-        <!-- Bento Grid Layout -->
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
-            <!-- Left Column (Feed & Controls) -->
-            <div class="xl:col-span-8 flex flex-col gap-6">
-                <!-- Main Video Feed Viewport -->
-                <div class="glass-panel rounded-xl flex-1 relative overflow-hidden border border-outline-variant/40 shadow-inner group scan-line">
-                    <div class="absolute inset-0 bg-cover bg-center object-cover opacity-80 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBcPzMzbpirF9x5VFG-Pp7Gx-NxVTQOMMb_misC2H7B3ntidWmKfCOXWc0R0RRfoa7U2TaiNvAyGGm-H2hJ_ow0mMkzLCL5eBuvxQIA5OiE-iGd6YtJA8kZj0K4JiDouCZqdzrEhYxMW_nALrrbJjxEPSjE-Y6GUQfigrK6gregb7b8mqtE1v74yGBBJgR3223BZc9qa2yKAMR7IsriGeWVm5gY53vxa3FKYZN52kVfnwHeeT6paCXLw-P4wNaEgWjSuwRSL77KFW8')"></div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-90 pointer-events-none"></div>
-                    <div class="absolute top-4 left-4 flex gap-2">
-                        <span class="bg-black/60 backdrop-blur-md border border-outline-variant/30 text-white font-label-mono text-[10px] px-2 py-1 rounded-sm tracking-widest flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span> REC
-                        </span>
-                        <span class="bg-black/60 backdrop-blur-md border border-outline-variant/30 text-primary font-label-mono text-[10px] px-2 py-1 rounded-sm tracking-widest">
-                            CAM-04 MAIN
-                        </span>
-                    </div>
-                    <!-- Crosshair Overlay -->
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-[0.5px] border-primary/30 flex justify-between flex-col pointer-events-none opacity-50">
-                        <div class="flex justify-between w-full">
-                            <div class="w-4 h-4 border-t border-l border-primary"></div>
-                            <div class="w-4 h-4 border-t border-r border-primary"></div>
+        <!-- SideNavBar -->
+        <nav class="fixed h-full w-[260px] left-0 top-0 transition-all duration-300 ease-in-out z-50 border-r border-outline-variant/30 bg-surface-container/60 backdrop-blur-md shadow-2xl shadow-primary/10 overflow-hidden"
+            id="sidebar">
+            <button
+                class="absolute z-50 text-on-surface-variant hover:text-primary transition-all duration-300 hover:bg-surface-bright/50 p-1.5 rounded-full flex items-center justify-center w-[36px] h-[36px] top-[24px] right-[16px]"
+                id="menu-toggle">
+                <span class="material-symbols-outlined text-lg">menu</span>
+            </button>
+            <div class="w-[260px] h-full flex flex-col py-gutter px-4" id="sidebar-content">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-8 h-[36px]">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                            <span class="material-symbols-outlined text-primary text-sm"
+                                style="font-variation-settings: 'FILL' 1;">visibility</span>
                         </div>
-                        <div class="flex justify-between w-full mt-auto">
-                            <div class="w-4 h-4 border-b border-l border-primary"></div>
-                            <div class="w-4 h-4 border-b border-r border-primary"></div>
+                        <div>
+                            <h1
+                                class="font-display-lg text-[18px] font-bold text-primary tracking-tight leading-none text-glow">
+                                Aegis Vision</h1>
+                            <span
+                                class="font-label-mono text-[10px] text-on-surface-variant uppercase tracking-wider">AI
+                                Forensics</span>
                         </div>
                     </div>
-                    <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                        <div class="font-label-mono text-label-mono text-on-background/70">
-                            FPS: 59.94 <br> RES: 3840x2160
-                        </div>
-                        <div class="font-label-mono text-[10px] text-primary/70 tracking-widest text-right">
-                            AI.FORENSICS.ENGINE_v2.4 <br>
-                            <span class="text-on-background/50">PROCESSING...</span>
-                        </div>
-                    </div>
+                    <div class="w-[36px]"></div>
                 </div>
-                <!-- Compact Controls -->
-                <div class="flex gap-4 items-center px-4 py-2 bg-surface-container-low/30 border border-outline-variant/20 rounded-xl shrink-0">
-                    <button class="flex-1 bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-label-mono py-2 px-4 rounded-lg border border-outline-variant/30 transition-all flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[18px]">photo_camera</span>Screenshot</button>
-                    <button class="flex-1 bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-label-mono py-2 px-4 rounded-lg border border-outline-variant/30 transition-all flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[18px]">refresh</span>Re-identify</button>
+                <!-- Navigation Links -->
+                <div class="flex flex-col gap-2 flex-grow">
+                    <a id="nav-home" data-nav
+                        class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent"
+                        href="index.html">
+                        <span class="material-symbols-outlined text-[20px]">home</span>
+                        Home
+                    </a>
+                    <a id="nav-history" data-nav
+                        class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent"
+                        href="scripts/detection_history.html">
+                        <span class="material-symbols-outlined text-[20px]">history</span>
+                        Detection History
+                    </a>
+                    <a id="nav-chat" data-nav
+                        class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface transition-colors hover:bg-surface-bright/50 duration-200 font-label-mono text-label-mono border-l-4 border-transparent"
+                        href="scripts/ai_chat.html">
+                        <span class="material-symbols-outlined text-[20px]">forum</span>
+                        AI Chat
+                    </a>
                 </div>
-                <!-- Device Select Controls -->
-                <div class="glass-panel rounded-xl p-3 border border-outline-variant/30 flex flex-wrap gap-4 items-end bg-surface-container-low/50 shrink-0">
-                    <div class="flex-1 flex items-end gap-3 border-glow">
-                        <div class="flex-1 flex flex-col gap-1">
-                            <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Source Input</label>
-                            <div class="relative">
-                                <select class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
-                                    <option>CAM-04 (Lobby West)</option>
-                                    <option>CAM-01 (Main Entrance)</option>
-                                    <option>CAM-08 (Server Room)</option>
-                                </select>
-                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center"><span class="material-symbols-outlined text-[18px]">arrow_drop_down</span></div>
-                            </div>
-                        </div>
-                        <button class="bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-[10px] py-1.5 px-3 rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Load Camera</button>
-                    </div>
-                    <div class="flex-1 flex items-end gap-3 border-glow">
-                        <div class="flex-1 flex flex-col gap-1">
-                            <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Inference Model</label>
-                            <div class="relative">
-                                <select class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
-                                    <option>YOLO-v8 (Fast Tracking)</option>
-                                    <option>ResNet-50 (Deep Classification)</option>
-                                    <option>Custom_Aegis_V1</option>
-                                </select>
-                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center"><span class="material-symbols-outlined text-[18px]">arrow_drop_down</span></div>
-                            </div>
-                        </div>
-                        <button class="bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-[10px] py-1.5 px-3 rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Load Model</button>
-                    </div>
-                    <div class="flex-1 flex items-end gap-3 border-glow">
-                        <div class="flex-1 flex flex-col gap-1">
-                            <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Printer Model</label>
-                            <div class="relative">
-                                <select class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
-                                    <option>Aegis-Print P1</option>
-                                    <option>Aegis-Print X2</option>
-                                    <option>Aegis-Print Pro Max</option>
-                                    <option class="text-secondary">Add New Model+</option>
-                                </select>
-                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center"><span class="material-symbols-outlined text-[18px]">arrow_drop_down</span></div>
-                            </div>
-                        </div>
-                        <button class="bg-secondary hover:bg-secondary/80 text-on-secondary font-label-mono px-8 py-1.5 text-[10px] font-bold rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Confirm Setting</button>
-                    </div>
+                <!-- Footer -->
+                <div class="mt-auto pt-4 border-t border-outline-variant/30 flex justify-between items-center px-2">
+                    <a id="nav-profile-footer"
+                        class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-bright/50"
+                        title="Profile" href="scripts/user_profile.html">
+                        <span class="material-symbols-outlined"
+                            style="font-variation-settings: 'FILL' 1;">account_circle</span>
+                    </a>
+                    <a id="nav-settings-footer"
+                        class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-bright/50"
+                        title="Settings" href="scripts/settings.html">
+                        <span class="material-symbols-outlined">settings</span>
+                    </a>
                 </div>
             </div>
+        </nav>
 
-            <!-- Right Column (Logs & Stats) -->
-            <div class="xl:col-span-4 flex flex-col gap-6">
-                <!-- Recent Captures -->
-                <div class="glass-panel rounded-xl p-4 border border-outline-variant/30 bg-surface-container-lowest/80 shrink-0">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary text-[18px]">photo_library</span>
-                            <h3 class="font-label-mono text-label-mono text-on-surface tracking-wider uppercase">Recent Captures</h3>
+        <!-- Main Content Area -->
+        <main
+            class="ml-[260px] pt-16 h-full flex flex-col p-gutter gap-gutter bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-surface-container-low via-background to-background"
+            id="main-content" style="margin-left: 263px;">
+            <!-- Bento Grid Layout -->
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0">
+                <!-- Left Column (Feed & Controls) -->
+                <div class="xl:col-span-8 flex flex-col gap-6">
+                    <!-- Main Video Feed Viewport -->
+                    <div id="video-feed-viewport"
+                        class="glass-panel rounded-xl flex-1 relative overflow-hidden border border-outline-variant/40 shadow-inner group scan-line min-h-[400px]">
+                        <div id="video-feed-bg" class="absolute inset-0 bg-surface-container-lowest flex items-center justify-center">
+                            <div id="no-camera-placeholder" class="flex flex-col items-center gap-3 text-on-surface-variant/30">
+                                <span class="material-symbols-outlined text-[48px]">videocam_off</span>
+                                <span class="font-label-mono text-[12px] tracking-widest uppercase">No Camera Feed</span>
+                            </div>
+                            <video id="camera-video" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
+                            <canvas id="detection-canvas" class="absolute inset-0 w-full h-full pointer-events-none hidden"></canvas>
                         </div>
-                        <span class="text-[10px] text-on-surface-variant font-label-mono">3 NEW</span>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-90 pointer-events-none">
+                        </div>
+                        <div class="absolute top-4 left-4 flex gap-2">
+                            <span id="rec-badge"
+                                class="bg-black/60 backdrop-blur-md border border-outline-variant/30 text-white font-label-mono text-[10px] px-2 py-1 rounded-sm tracking-widest flex items-center gap-1.5 hidden">
+                                <span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span> REC
+                            </span>
+                            <span id="cam-label"
+                                class="bg-black/60 backdrop-blur-md border border-outline-variant/30 text-primary font-label-mono text-[10px] px-2 py-1 rounded-sm tracking-widest hidden">
+                                --
+                            </span>
+                        </div>
+                        <!-- Crosshair Overlay -->
+                        <div
+                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-[0.5px] border-primary/30 flex justify-between flex-col pointer-events-none opacity-50">
+                            <div class="flex justify-between w-full">
+                                <div class="w-4 h-4 border-t border-l border-primary"></div>
+                                <div class="w-4 h-4 border-t border-r border-primary"></div>
+                            </div>
+                            <div class="flex justify-between w-full mt-auto">
+                                <div class="w-4 h-4 border-b border-l border-primary"></div>
+                                <div class="w-4 h-4 border-b border-r border-primary"></div>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+                            <div id="feed-stats" class="font-label-mono text-label-mono text-on-background/70">
+                                FPS: -- <br> RES: --
+                            </div>
+                            <div class="font-label-mono text-[10px] text-primary/70 tracking-widest text-right">
+                                AI.FORENSICS.ENGINE <br>
+                                <span id="engine-status" class="text-on-background/50">STANDBY</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="flex gap-4 items-center group cursor-pointer">
-                            <div class="w-32 aspect-video bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden shrink-0">
-                                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Capture Alpha">
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-primary font-label-mono text-[12px]">14:31:45</span>
-                                <span class="text-on-surface-variant text-[10px] uppercase tracking-widest">Sector Alpha</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-4 items-center group cursor-pointer">
-                            <div class="w-32 aspect-video bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden shrink-0">
-                                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Capture Beta">
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-primary font-label-mono text-[12px]">14:30:12</span>
-                                <span class="text-on-surface-variant text-[10px] uppercase tracking-widest">Sector Beta</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-4 items-center group cursor-pointer">
-                            <div class="w-32 aspect-video bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden shrink-0">
-                                <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Capture Main Entrance">
-                            </div>
-                            <div class="flex flex-col">
-                                <span class="text-primary font-label-mono text-[12px]">14:28:55</span>
-                                <span class="text-on-surface-variant text-[10px] uppercase tracking-widest">Main Entrance</span>
-                            </div>
-                        </div>
+                    <!-- Compact Controls -->
+                    <div
+                        class="flex gap-4 items-center px-4 py-2 bg-surface-container-low/30 border border-outline-variant/20 rounded-xl shrink-0">
+                        <button id="screenshot-btn"
+                            class="flex-1 bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-label-mono py-2 px-4 rounded-lg border border-outline-variant/30 transition-all flex items-center justify-center gap-2"><span
+                                class="material-symbols-outlined text-[18px]">photo_camera</span>Screenshot</button>
+                        <button id="reidentify-btn"
+                            class="flex-1 bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-label-mono py-2 px-4 rounded-lg border border-outline-variant/30 transition-all flex items-center justify-center gap-2"><span
+                                class="material-symbols-outlined text-[18px]">refresh</span>Re-identify</button>
                     </div>
-                </div>
-
-                <!-- System Terminal -->
-                <div class="glass-panel rounded-xl flex-grow flex flex-col border border-outline-variant/30 overflow-hidden bg-surface-container-lowest/80 min-h-0">
-                    <div class="p-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low/50 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-on-surface-variant text-[16px]">terminal</span>
-                            <h3 class="font-label-mono text-label-mono text-on-surface tracking-wider">System Terminal</h3>
+                    <!-- Device Select Controls -->
+                    <div class="glass-panel rounded-xl p-3 border border-outline-variant/30 flex flex-col gap-3 bg-surface-container-low/50 shrink-0">
+                        <!-- Row 1: Camera & Model -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1 flex items-end gap-3 border-glow">
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Source Input</label>
+                                    <div class="relative">
+                                        <select id="camera-select"
+                                            class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
+                                            <option value="">-- Select Camera --</option>
+                                        </select>
+                                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center">
+                                            <span class="material-symbols-outlined text-[18px]">arrow_drop_down</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button id="load-camera-btn" class="bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-[10px] py-1.5 px-3 rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Load Camera</button>
+                            </div>
+                            <div class="flex-1 flex items-end gap-3 border-glow">
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Inference Model</label>
+                                    <div class="relative">
+                                        <select id="model-select"
+                                            class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
+                                            <option value="">-- Select Model --</option>
+                                            <option value="__add_model__" class="text-secondary">+ Add Model</option>
+                                        </select>
+                                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center">
+                                            <span class="material-symbols-outlined text-[18px]">arrow_drop_down</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button id="load-model-btn" class="bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-[10px] py-1.5 px-3 rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Load Model</button>
+                            </div>
                         </div>
-                        <span class="w-2 h-2 rounded-full bg-secondary/80 animate-pulse"></span>
-                    </div>
-                    <div id="terminal-log" class="flex-grow p-4 overflow-y-auto log-scroll font-label-mono text-[11px] leading-relaxed text-on-surface-variant bg-[#060e20]">
-                        <div class="flex flex-col gap-1.5 opacity-80">
-                            <p><span class="text-primary/70">[14:32:01]</span> SYS: Initialization complete.</p>
-                            <p><span class="text-primary/70">[14:32:05]</span> CAM-04: Connection established (Latency: 12ms).</p>
-                            <p><span class="text-primary/70">[14:32:06]</span> MDL_ENG: Loading YOLO-v8 weights into VRAM...</p>
-                            <p class="text-secondary"><span class="text-primary/70">[14:32:08]</span> MDL_ENG: Load success. CUDA core active.</p>
-                            <p><span class="text-primary/70">[14:32:10]</span> INFERENCE: Starting real-time analysis stream.</p>
-                            <p><span class="text-primary/70">[14:32:15]</span> OBJ_DET: Scanning sector Alpha.</p>
-                            <p><span class="text-primary/70">[14:32:22]</span> OBJ_DET: Scanning sector Beta.</p>
-                            <p><span class="text-primary/70">[14:32:30]</span> SYS: Routine health check - OK.</p>
-                            <p><span class="text-primary/70">[14:32:45]</span> INFERENCE: Background noise filtered.</p>
-                            <p><span class="text-primary/70">[14:33:01]</span> OBJ_DET: Scanning sector Charlie.</p>
-                            <p class="text-on-background opacity-50 italic animate-pulse mt-2">Awaiting new events...</p>
+                        <!-- Row 2: Printer & Confirm -->
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-1 flex items-end gap-3 border-glow">
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <label class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Printer Model</label>
+                                    <div class="relative">
+                                        <select id="printer-select"
+                                            class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1.5 pl-3 pr-8 appearance-none focus:outline-none focus:border-primary/50 transition-colors cursor-pointer">
+                                            <option value="">-- Select Printer --</option>
+                                            <option value="__add_printer__" class="text-secondary">+ Add Printer</option>
+                                        </select>
+                                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant flex items-center">
+                                            <span class="material-symbols-outlined text-[18px]">arrow_drop_down</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button id="confirm-setting-btn" class="bg-secondary hover:bg-secondary/80 text-on-secondary font-label-mono px-8 py-1.5 text-[10px] font-bold rounded-lg border border-outline-variant/30 transition-all h-[34px] whitespace-nowrap">Confirm Setting</button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Mini Status Card -->
-                <div class="glass-panel rounded-xl p-4 border border-outline-variant/30 grid grid-cols-2 gap-4 bg-surface-container-low/30 h-24 shrink-0">
-                    <div class="flex flex-col justify-center">
-                        <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">Compute Load</span>
-                        <div class="font-display-lg text-[20px] font-bold text-on-surface">64%</div>
-                        <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
-                            <div class="bg-tertiary-container h-full w-[64%]"></div>
+                <!-- Right Column (Logs & Stats) -->
+                <div class="xl:col-span-4 flex flex-col gap-6">
+                    <!-- Recent Captures -->
+                    <div
+                        class="glass-panel rounded-xl p-4 border border-outline-variant/30 bg-surface-container-lowest/80 shrink-0">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary text-[18px]">photo_library</span>
+                                <h3 class="font-label-mono text-label-mono text-on-surface tracking-wider uppercase">
+                                    Recent Captures</h3>
+                            </div>
+                            <span id="captures-count" class="text-[10px] text-on-surface-variant font-label-mono"></span>
+                        </div>
+                        <div id="captures-grid" class="flex gap-2 overflow-x-auto log-scroll pb-1 h-[80px] items-center">
+                            <div id="captures-placeholder" class="flex flex-col items-center justify-center text-on-surface-variant/50 w-full shrink-0">
+                                <span class="material-symbols-outlined text-[24px] mb-1">photo_library</span>
+                                <span class="font-label-mono text-[11px]">No captures yet</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex flex-col justify-center border-l border-outline-variant/20 pl-4">
-                        <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">VRAM Usage</span>
-                        <div class="font-display-lg text-[20px] font-bold text-on-surface">7.2<span class="text-[12px] text-on-surface-variant">GB</span></div>
-                        <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
-                            <div class="bg-primary h-full w-[45%]"></div>
+
+                    <!-- System Terminal -->
+                    <div
+                        class="glass-panel rounded-xl flex flex-col border border-outline-variant/30 overflow-hidden bg-surface-container-lowest/80 h-[300px]">
+                        <div
+                            class="p-3 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-low/50 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="material-symbols-outlined text-on-surface-variant text-[16px]">terminal</span>
+                                <h3 class="font-label-mono text-label-mono text-on-surface tracking-wider">System
+                                    Terminal</h3>
+                            </div>
+                            <span class="w-2 h-2 rounded-full bg-secondary/80 animate-pulse"></span>
+                        </div>
+                        <div id="terminal-log"
+                            class="flex-grow p-4 overflow-y-auto log-scroll font-label-mono text-[11px] leading-relaxed text-on-surface-variant bg-[#060e20]">
+                            <div class="flex flex-col gap-1.5 opacity-80">
+                                <p class="text-on-background opacity-50 italic animate-pulse mt-2">Awaiting new
+                                    events...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mini Status Card -->
+                    <div
+                        class="glass-panel rounded-xl p-4 border border-outline-variant/30 grid grid-cols-2 gap-4 bg-surface-container-low/30 h-24 shrink-0">
+                        <div class="flex flex-col justify-center">
+                            <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">Compute
+                                Load</span>
+                            <div id="compute-load-val" class="font-display-lg text-[20px] font-bold text-on-surface">--%</div>
+                            <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
+                                <div id="compute-load-bar" class="bg-tertiary-container h-full w-[0%] transition-all duration-500"></div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col justify-center border-l border-outline-variant/20 pl-4">
+                            <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">VRAM
+                                Usage</span>
+                            <div id="vram-usage-val" class="font-display-lg text-[20px] font-bold text-on-surface">--<span
+                                    class="text-[12px] text-on-surface-variant">GB</span></div>
+                            <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
+                                <div id="vram-usage-bar" class="bg-primary h-full w-[0%] transition-all duration-500"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
-</div>
+        </main>
+    </div>
 
-<script src="js/app.js"></script>
+    <script src="js/app.js"></script>
 </body>
+
 </html>

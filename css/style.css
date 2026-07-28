@@ -10,17 +10,17 @@ body {
     margin: 0;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
-    overflow: hidden;
+    overflow: auto;
 }
 
 /* === App Container (1920x1080 viewport) === */
 #app-container {
     width: 1920px;
-    height: 1080px;
+    min-height: 1080px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     background-color: #0b1326;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
 }
@@ -68,6 +68,7 @@ body {
 /* === Thin Scrollbar (Logs) === */
 .log-scroll::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
 }
 .log-scroll::-webkit-scrollbar-track {
     background: rgba(23, 31, 51, 0.5);
@@ -167,8 +168,8 @@ body {
     transition: left 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 #top-header.collapsed {
-    left: 0 !important;
-    width: 100% !important;
+    left: 80px !important;
+    width: calc(100% - 80px) !important;
 }
 
 /* === Data Card (Detection History) === */
@@ -209,4 +210,201 @@ body {
     background: linear-gradient(90deg, transparent, rgba(173, 198, 255, 0.3), transparent);
     animation: scanLine 4s linear infinite;
     pointer-events: none;
+}
+
+/* === Notification Panel === */
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(23, 31, 51, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(65, 71, 85, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(75, 142, 255, 0.1);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.25s ease;
+}
+.notification-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.notification-panel .notif-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(65, 71, 85, 0.3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #c1c6d7;
+}
+.notification-panel .notif-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(65, 71, 85, 0.15);
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.notification-panel .notif-item:hover {
+    background: rgba(75, 142, 255, 0.08);
+}
+.notification-panel .notif-item:last-child {
+    border-bottom: none;
+}
+.notification-panel .notif-empty {
+    padding: 32px 16px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8b90a0;
+}
+
+/* === Notification Badge === */
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    box-shadow: 0 0 6px rgba(255, 68, 68, 0.7);
+    display: none;
+}
+.notification-badge.has-notif {
+    display: block;
+    animation: pulseGlow-red 2s ease-in-out infinite;
+}
+@keyframes pulseGlow-red {
+    0%, 100% { box-shadow: 0 0 4px rgba(255, 68, 68, 0.5); }
+    50%      { box-shadow: 0 0 10px rgba(255, 68, 68, 0.9); }
+}
+
+/* === Language Menu Active State === */
+.lang-btn-active {
+    background: rgba(75, 142, 255, 0.15) !important;
+    color: #adc6ff !important;
+    position: relative;
+}
+.lang-btn-active::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #4b8eff;
+    box-shadow: 0 0 6px rgba(75, 142, 255, 0.6);
+}
+
+/* === Unread Notification Item === */
+.notif-item.notif-unread {
+    background: rgba(75, 142, 255, 0.06);
+    border-left: 2px solid #4b8eff;
+}
+
+/* === Lightbox / Image Preview Modal === */
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.lightbox-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+.lightbox-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.lightbox-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-width: 80vw;
+    max-height: 85vh;
+    background: rgba(23, 31, 51, 0.95);
+    border: 1px solid rgba(65, 71, 85, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 30px rgba(75, 142, 255, 0.1);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+.lightbox-overlay.open .lightbox-container {
+    transform: scale(1);
+}
+.lightbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(65, 71, 85, 0.3);
+    background: rgba(19, 27, 46, 0.8);
+    shrink: 0;
+}
+.lightbox-body {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 200px;
+}
+.lightbox-body img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+    border-radius: 4px;
+    user-select: none;
+}
+.lightbox-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    border-top: 1px solid rgba(65, 71, 85, 0.3);
+    background: rgba(19, 27, 46, 0.8);
+}
+.lightbox-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #c1c6d7;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+.lightbox-btn:hover {
+    background: rgba(75, 142, 255, 0.15);
+    color: #adc6ff;
+}
+.lightbox-btn-close:hover {
+    background: rgba(255, 68, 68, 0.2);
+    color: #ffb4ab;
 }
