@@ -287,6 +287,35 @@
                             class="flex-1 bg-surface-container hover:bg-surface-bright/50 text-on-surface font-label-mono text-label-mono py-2 px-4 rounded-lg border border-outline-variant/30 transition-all flex items-center justify-center gap-2"><span
                                 class="material-symbols-outlined text-[18px]">refresh</span>Re-identify</button>
                     </div>
+
+                    <!-- Session Recording Controls (Start, Pause, Stop) -->
+                    <div class="glass-panel rounded-xl p-3 border border-outline-variant/30 flex flex-col gap-2.5 bg-surface-container-low/50 shrink-0">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2 flex-1">
+                                <label class="font-label-mono text-[9px] text-on-surface-variant uppercase whitespace-nowrap">Session Name</label>
+                                <input id="session-name-input" type="text" value="Identify-0"
+                                    class="w-full bg-surface-container border border-outline-variant/50 text-on-surface font-label-mono text-[11px] rounded-lg py-1 px-2.5 focus:outline-none focus:border-primary/50 transition-colors">
+                            </div>
+                            <div class="flex items-center gap-2 bg-surface-container/60 px-2.5 py-1 rounded-lg border border-outline-variant/30 shrink-0">
+                                <span id="rec-status-dot" class="w-2 h-2 rounded-full bg-outline"></span>
+                                <span id="rec-timer-display" class="font-label-mono text-[11px] text-primary">00:00:00</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 items-center">
+                            <button id="session-start-btn" disabled
+                                class="flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[16px]">play_arrow</span>Start
+                            </button>
+                            <button id="session-pause-btn" disabled
+                                class="flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[16px]">pause</span>Pause
+                            </button>
+                            <button id="session-stop-btn" disabled
+                                class="flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed">
+                                <span class="material-symbols-outlined text-[16px]">stop</span>Stop
+                            </button>
+                        </div>
+                    </div>
                     <!-- Device Select Controls -->
                     <div class="glass-panel rounded-xl p-3 border border-outline-variant/30 flex flex-col gap-3 bg-surface-container-low/50 shrink-0">
                         <!-- Row 1: Camera & Model -->
@@ -390,22 +419,44 @@
 
                     <!-- Mini Status Card -->
                     <div
-                        class="glass-panel rounded-xl p-4 border border-outline-variant/30 grid grid-cols-2 gap-4 bg-surface-container-low/30 h-24 shrink-0">
-                        <div class="flex flex-col justify-center">
-                            <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">Compute
-                                Load</span>
-                            <div id="compute-load-val" class="font-display-lg text-[20px] font-bold text-on-surface">--%</div>
-                            <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
-                                <div id="compute-load-bar" class="bg-tertiary-container h-full w-[0%] transition-all duration-500"></div>
+                        class="glass-panel rounded-xl p-3 border border-outline-variant/30 flex flex-col justify-between bg-surface-container-low/30 shrink-0 gap-2">
+                        <div class="flex items-center justify-between border-b border-outline-variant/15 pb-1.5">
+                            <span class="font-label-mono text-[9px] text-on-surface-variant uppercase tracking-wider">Resource Monitor</span>
+                            <div class="flex items-center gap-3 font-label-mono text-[9px]">
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
+                                    <span class="text-white/80">Other System</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                    <span class="text-primary">Aegis (App)</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-col justify-center border-l border-outline-variant/20 pl-4">
-                            <span class="font-label-mono text-[9px] text-on-surface-variant uppercase mb-1">VRAM
-                                Usage</span>
-                            <div id="vram-usage-val" class="font-display-lg text-[20px] font-bold text-on-surface">--<span
-                                    class="text-[12px] text-on-surface-variant">GB</span></div>
-                            <div class="w-full bg-surface-container h-1 mt-1 rounded-full overflow-hidden">
-                                <div id="vram-usage-bar" class="bg-primary h-full w-[0%] transition-all duration-500"></div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex flex-col justify-center">
+                                <div class="flex justify-between items-baseline mb-0.5">
+                                    <span class="font-label-mono text-[9px] text-on-surface-variant uppercase">Compute Load</span>
+                                    <span id="compute-load-sub" class="font-label-mono text-[9px] text-on-surface-variant/70">--</span>
+                                </div>
+                                <div id="compute-load-val" class="font-display-lg text-[18px] font-bold text-on-surface">--%</div>
+                                <div class="w-full bg-surface-container h-1.5 mt-1 rounded-full overflow-hidden flex">
+                                    <div id="compute-other-bar" class="bg-white h-full w-[0%] transition-all duration-500" title="System / Other Usage"></div>
+                                    <div id="compute-app-bar" class="bg-primary h-full w-[0%] transition-all duration-500" title="Aegis App Usage"></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-center border-l border-outline-variant/20 pl-4">
+                                <div class="flex justify-between items-baseline mb-0.5">
+                                    <span class="font-label-mono text-[9px] text-on-surface-variant uppercase">VRAM Usage</span>
+                                    <span id="vram-usage-sub" class="font-label-mono text-[9px] text-on-surface-variant/70">--</span>
+                                </div>
+                                <div id="vram-usage-val" class="font-display-lg text-[18px] font-bold text-on-surface">--<span
+                                        class="text-[12px] text-on-surface-variant">GB</span></div>
+                                <div class="w-full bg-surface-container h-1.5 mt-1 rounded-full overflow-hidden flex">
+                                    <div id="vram-other-bar" class="bg-white h-full w-[0%] transition-all duration-500" title="System / Other Usage"></div>
+                                    <div id="vram-app-bar" class="bg-primary h-full w-[0%] transition-all duration-500" title="Aegis App Usage"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

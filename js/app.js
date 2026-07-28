@@ -8,6 +8,17 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    let recState = 'IDLE'; // 'IDLE' | 'RECORDING' | 'PAUSED'
+    let recElapsedSeconds = 0;
+    let recInterval = null;
+    let sessionDefectCounts = {};
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let sessionPeakVram = 0;
+    let sessionThumbnail = '';
+    let settingsConfirmed = false;
+    let historyCurrentPage = 1;
+
     // ─── Sidebar Toggle ────────────────────────────
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('main-content');
@@ -221,46 +232,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ─── Resource Usage Monitor ────────────────────
     const computeLoadVal = document.getElementById('compute-load-val');
-    const computeLoadBar = document.getElementById('compute-load-bar');
+    const computeLoadSub = document.getElementById('compute-load-sub');
+    const computeAppBar = document.getElementById('compute-app-bar');
+    const computeOtherBar = document.getElementById('compute-other-bar');
+
     const vramUsageVal = document.getElementById('vram-usage-val');
-    const vramUsageBar = document.getElementById('vram-usage-bar');
+    const vramUsageSub = document.getElementById('vram-usage-sub');
+    const vramAppBar = document.getElementById('vram-app-bar');
+    const vramOtherBar = document.getElementById('vram-other-bar');
 
     function updateResourceUsage() {
-        if (!computeLoadVal || !computeLoadBar || !vramUsageVal || !vramUsageBar) return;
+        if (!computeLoadVal || !computeAppBar || !computeOtherBar || !vramUsageVal || !vramAppBar || !vramOtherBar) return;
 
         const { cameraOnline, modelOnline } = window.aegisSystemState;
-        let baseCpu = 16;
-        let cpuRange = 6;
-        let baseVram = 1.2;
-        let vramRange = 0.3;
-        const totalVram = 8.0;
+        const totalVramCap = 8.0;
+
+        // Base App CPU and VRAM
+        let baseAppCpu = 3;
+        let cpuRange = 3;
+        let baseAppVram = 0.3;
+        let vramRange = 0.2;
 
         if (cameraOnline && modelOnline) {
-            baseCpu = 72;
-            cpuRange = 18;
-            baseVram = 5.8;
-            vramRange = 1.0;
+            baseAppCpu = 55;
+            cpuRange = 15;
+            baseAppVram = 4.6;
+            vramRange = 0.8;
         } else if (cameraOnline) {
-            baseCpu = 35;
-            cpuRange = 10;
-            baseVram = 2.4;
-            vramRange = 0.5;
+            baseAppCpu = 24;
+            cpuRange = 8;
+            baseAppVram = 1.6;
+            vramRange = 0.4;
         } else if (modelOnline) {
-            baseCpu = 44;
-            cpuRange = 12;
-            baseVram = 4.1;
-            vramRange = 0.6;
+            baseAppCpu = 30;
+            cpuRange = 10;
+            baseAppVram = 2.9;
+            vramRange = 0.5;
         }
 
-        const currentCpu = Math.min(99, Math.max(5, Math.floor(baseCpu + (Math.random() * cpuRange - cpuRange / 2))));
-        const currentVram = Math.min(7.9, Math.max(0.8, (baseVram + (Math.random() * vramRange - vramRange / 2)))).toFixed(1);
-        const vramPct = Math.min(100, Math.round((parseFloat(currentVram) / totalVram) * 100));
+        // Base System/Other CPU and VRAM
+        const baseOtherCpu = 12;
+        const otherCpuRange = 6;
+        const baseOtherVram = 1.2;
+        const otherVramRange = 0.3;
 
-        computeLoadVal.textContent = `${currentCpu}%`;
-        computeLoadBar.style.width = `${currentCpu}%`;
+        // Calculate values
+        const appCpu = Math.min(85, Math.max(1, Math.floor(baseAppCpu + (Math.random() * cpuRange - cpuRange / 2))));
+        const otherCpu = Math.min(30, Math.max(5, Math.floor(baseOtherCpu + (Math.random() * otherCpuRange - otherCpuRange / 2))));
+        const totalCpu = Math.min(99, appCpu + otherCpu);
 
-        vramUsageVal.innerHTML = `${currentVram}<span class="text-[12px] text-on-surface-variant">GB</span>`;
-        vramUsageBar.style.width = `${vramPct}%`;
+        const appVram = Math.min(6.5, Math.max(0.2, parseFloat((baseAppVram + (Math.random() * vramRange - vramRange / 2)).toFixed(1))));
+        const otherVram = Math.min(2.0, Math.max(0.8, parseFloat((baseOtherVram + (Math.random() * otherVramRange - otherVramRange / 2)).toFixed(1))));
+        const totalVramUsed = Math.min(7.9, parseFloat((appVram + otherVram).toFixed(1)));
+        window.aegisSystemState.vramUsage = totalVramUsed;
+
+        // Update Compute Load UI
+        computeLoadVal.textContent = `${totalCpu}%`;
+        if (computeLoadSub) {
+            computeLoadSub.textContent = `Other ${otherCpu}% | Aegis ${appCpu}%`;
+        }
+        computeAppBar.style.width = `${appCpu}%`;
+        computeOtherBar.style.width = `${otherCpu}%`;
+
+        // Update VRAM UI
+        vramUsageVal.innerHTML = `${totalVramUsed}<span class="text-[12px] text-on-surface-variant">GB</span>`;
+        if (vramUsageSub) {
+            vramUsageSub.textContent = `Other ${otherVram}G | Aegis ${appVram}G`;
+        }
+        const appVramPct = (appVram / totalVramCap) * 100;
+        const otherVramPct = (otherVram / totalVramCap) * 100;
+        vramAppBar.style.width = `${appVramPct}%`;
+        vramOtherBar.style.width = `${otherVramPct}%`;
     }
 
     updateSystemStatus();
@@ -673,6 +715,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const modelName = modelSelect.options[modelSelect.selectedIndex].textContent;
             const printerName = printerSelect.options[printerSelect.selectedIndex].textContent;
 
+            settingsConfirmed = true;
+            if (typeof updateRecUI === 'function') updateRecUI();
+
             termLog('═══════════════════════════════════════════');
             termLog('CONFIRM: All settings confirmed successfully.', 'success');
             termLog(`  → Camera:  ${cameraName}`);
@@ -690,8 +735,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const capturesCount = document.getElementById('captures-count');
     let screenshotCounter = 0;
 
+    if (capturesGrid) {
+        capturesGrid.addEventListener('wheel', (evt) => {
+            evt.preventDefault();
+            capturesGrid.scrollLeft += evt.deltaY;
+        });
+    }
+
     if (screenshotBtn) {
         screenshotBtn.addEventListener('click', () => {
+            if (recState === 'IDLE') {
+                termLog('SCREENSHOT ERROR: Cannot take a screenshot while not recording. Start recording first.', 'error');
+                return;
+            }
             if (!cameraVideo || cameraVideo.classList.contains('hidden') || !activeCameraStream) {
                 termLog('SCREENSHOT: No active camera feed. Please load a camera first.', 'error');
                 window.addNotification('No active camera feed for screenshot.', 'error', 'photo_camera');
@@ -1009,6 +1065,300 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreModelsFromStorage();
     restorePrintersFromStorage();
 
+    // ─── IndexedDB Database Manager ────────────────
+    const DB_NAME = 'AegisVisionDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'identifications';
+    let dbInstance = null;
+
+    function openDatabase() {
+        return new Promise((resolve, reject) => {
+            if (dbInstance) {
+                resolve(dbInstance);
+                return;
+            }
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('sessionName', 'sessionName', { unique: false });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+            };
+
+            request.onsuccess = (e) => {
+                dbInstance = e.target.result;
+                resolve(dbInstance);
+            };
+
+            request.onerror = (e) => {
+                console.error('IndexedDB Error:', e.target.error);
+                reject(e.target.error);
+            };
+        });
+    }
+
+    async function saveRecordToDB(record) {
+        try {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.add(record);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error('Failed to save to IndexedDB:', err);
+        }
+    }
+
+    window.deleteRecordFromDB = async function(id) {
+        try {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error('Failed to delete from IndexedDB:', err);
+        }
+    };
+
+    async function getAllRecordsFromDB() {
+        try {
+            const db = await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        } catch (err) {
+            console.error('Failed to fetch from IndexedDB:', err);
+            return [];
+        }
+    }
+
+    window.AegisDB = { openDatabase, saveRecordToDB, getAllRecordsFromDB };
+
+    // ─── Identification Session Controller (Start, Pause, Stop) ──
+    const sessionNameInput = document.getElementById('session-name-input');
+    const recStatusDot = document.getElementById('rec-status-dot');
+    const recTimerDisplay = document.getElementById('rec-timer-display');
+    const sessionStartBtn = document.getElementById('session-start-btn');
+    const sessionPauseBtn = document.getElementById('session-pause-btn');
+    const sessionStopBtn = document.getElementById('session-stop-btn');
+
+
+    // Auto-number default session name on page load (Identify-0, Identify-1, ...)
+    async function updateDefaultSessionName() {
+        if (!sessionNameInput) return;
+        const records = await getAllRecordsFromDB();
+        sessionNameInput.value = `Identify-${records.length}`;
+    }
+    updateDefaultSessionName();
+
+    function formatTimeDisplay(totalSec) {
+        const hh = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+        const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+        const ss = String(totalSec % 60).padStart(2, '0');
+        return `${hh}:${mm}:${ss}`;
+    }
+
+    function updateRecUI() {
+        if (!recStatusDot || !sessionStartBtn || !sessionPauseBtn || !sessionStopBtn) return;
+
+        if (recState === 'RECORDING') {
+            recStatusDot.className = 'w-2 h-2 rounded-full bg-error animate-pulse shadow-[0_0_6px_rgba(255,68,68,0.8)]';
+            sessionStartBtn.disabled = true;
+            sessionStartBtn.className = 'flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed';
+
+            sessionPauseBtn.disabled = false;
+            sessionPauseBtn.className = 'flex-1 bg-[#ffb74d]/20 hover:bg-[#ffb74d]/30 text-[#ffb74d] border border-[#ffb74d]/40 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+            sessionPauseBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">pause</span>Pause';
+
+            sessionStopBtn.disabled = false;
+            sessionStopBtn.className = 'flex-1 bg-error/20 hover:bg-error/30 text-error border border-error/40 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+        } else if (recState === 'PAUSED') {
+            recStatusDot.className = 'w-2 h-2 rounded-full bg-[#ffb74d] shadow-[0_0_6px_rgba(255,183,77,0.8)]';
+            sessionPauseBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">play_arrow</span>Resume';
+        } else {
+            // IDLE
+            recStatusDot.className = 'w-2 h-2 rounded-full bg-outline';
+            if (settingsConfirmed) {
+                sessionStartBtn.disabled = false;
+                sessionStartBtn.className = 'flex-1 bg-secondary/20 hover:bg-secondary/30 text-secondary border border-secondary/40 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+            } else {
+                sessionStartBtn.disabled = true;
+                sessionStartBtn.className = 'flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed';
+            }
+
+            sessionPauseBtn.disabled = true;
+            sessionPauseBtn.className = 'flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed';
+            sessionPauseBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">pause</span>Pause';
+
+            sessionStopBtn.disabled = true;
+            sessionStopBtn.className = 'flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed';
+        }
+    }
+
+    if (sessionStartBtn) {
+        sessionStartBtn.addEventListener('click', () => {
+            const sessionName = sessionNameInput ? sessionNameInput.value.trim() || 'Identify-0' : 'Identify-0';
+            recState = 'RECORDING';
+            recElapsedSeconds = 0;
+            sessionPeakVram = window.aegisSystemState.vramUsage || 0;
+            sessionDefectCounts = { 'Layer Shift': 0, 'Warping': 0, 'Stringing': 0, 'Over-extrusion': 0 };
+
+            // Capture thumbnail
+            sessionThumbnail = '';
+            if (cameraVideo && !cameraVideo.classList.contains('hidden') && activeCameraStream) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cameraVideo.videoWidth || 640;
+                    canvas.height = cameraVideo.videoHeight || 480;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+                    sessionThumbnail = canvas.toDataURL('image/jpeg', 0.7);
+                } catch (err) {
+                    console.log('Failed to capture session thumbnail', err);
+                }
+            }
+
+            if (recInterval) clearInterval(recInterval);
+            recInterval = setInterval(() => {
+                if (recState === 'RECORDING') {
+                    recElapsedSeconds++;
+                    if (recTimerDisplay) recTimerDisplay.textContent = formatTimeDisplay(recElapsedSeconds);
+
+                    if (window.aegisSystemState.vramUsage > sessionPeakVram) {
+                        sessionPeakVram = window.aegisSystemState.vramUsage;
+                    }
+
+                    // Simulate defect detection occurrence during active recording session
+                    if (Math.random() < 0.25 && window.aegisSystemState.modelOnline) {
+                        const defects = ['Layer Shift', 'Warping', 'Stringing', 'Over-extrusion'];
+                        const defect = defects[Math.floor(Math.random() * defects.length)];
+                        sessionDefectCounts[defect] = (sessionDefectCounts[defect] || 0) + 1;
+                    }
+                }
+            }, 1000);
+
+            // Start MediaRecorder if video stream is available
+            if (activeCameraStream) {
+                try {
+                    recordedChunks = [];
+                    mediaRecorder = new MediaRecorder(activeCameraStream);
+                    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                    mediaRecorder.start(1000);
+                } catch (e) {
+                    console.log('MediaRecorder error:', e);
+                }
+            }
+
+            updateRecUI();
+            termLog(`SESSION: Started identification recording for "${sessionName}".`, 'success');
+            window.addNotification(`Session "${sessionName}" recording started.`, 'info', 'fiber_manual_record');
+        });
+    }
+
+    if (sessionPauseBtn) {
+        sessionPauseBtn.addEventListener('click', () => {
+            const sessionName = sessionNameInput ? sessionNameInput.value.trim() : 'Identify';
+            if (recState === 'RECORDING') {
+                recState = 'PAUSED';
+                if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.pause();
+                termLog(`SESSION: Recording paused for "${sessionName}".`, 'warning');
+                window.addNotification(`Session "${sessionName}" paused.`, 'warning', 'pause');
+            } else if (recState === 'PAUSED') {
+                recState = 'RECORDING';
+                if (mediaRecorder && mediaRecorder.state === 'paused') mediaRecorder.resume();
+                termLog(`SESSION: Recording resumed for "${sessionName}".`, 'success');
+                window.addNotification(`Session "${sessionName}" resumed.`, 'info', 'play_arrow');
+            }
+            updateRecUI();
+        });
+    }
+
+    if (sessionStopBtn) {
+        sessionStopBtn.addEventListener('click', async () => {
+            if (recInterval) {
+                clearInterval(recInterval);
+                recInterval = null;
+            }
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+
+            recState = 'IDLE';
+            updateRecUI();
+
+            const sessionName = sessionNameInput ? sessionNameInput.value.trim() || 'Identify-0' : 'Identify-0';
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const second = now.getSeconds();
+
+            const cameraName = (cameraSelect && cameraSelect.selectedIndex > 0) ? cameraSelect.options[cameraSelect.selectedIndex].textContent : 'CAM-01 (Default)';
+            const printerName = (printerSelect && printerSelect.selectedIndex > 0) ? printerSelect.options[printerSelect.selectedIndex].textContent : 'Standard Printer';
+            const modelName = window.aegisSystemState.loadedModelName || 'None';
+
+            const activeDefects = Object.entries(sessionDefectCounts).filter(([_, cnt]) => cnt > 0);
+            const defectsDetected = activeDefects.map(([d, _]) => d);
+            const totalDefects = activeDefects.reduce((acc, [_, cnt]) => acc + cnt, 0);
+
+            const record = {
+                sessionName,
+                year, month, day, hour, minute, second,
+                durationSeconds: recElapsedSeconds,
+                durationFormatted: formatTimeDisplay(recElapsedSeconds),
+                cameraName,
+                printerName,
+                modelName,
+                defectsDetected,
+                defectCounts: sessionDefectCounts,
+                totalDefects,
+                peakVram: sessionPeakVram,
+                thumbnail: sessionThumbnail,
+                createdAt: Date.now()
+            };
+
+            // Save to IndexedDB database
+            await saveRecordToDB(record);
+
+            const defectSummaryStr = activeDefects.length > 0
+                ? activeDefects.map(([d, c]) => `${d} (${c}x)`).join(', ')
+                : 'None (Pass)';
+
+            termLog('═══════════════════════════════════════════');
+            termLog(`SESSION: Identification "${sessionName}" finished & saved to DB!`, 'success');
+            termLog(`  → Time:     ${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
+            termLog(`  → Duration: ${record.durationFormatted}`);
+            termLog(`  → Camera:   ${cameraName}`);
+            termLog(`  → Printer:  ${printerName}`);
+            termLog(`  → Defects:  ${defectSummaryStr}`);
+            termLog('═══════════════════════════════════════════');
+
+            window.addNotification(`Session "${sessionName}" saved to Database. Duration: ${record.durationFormatted}`, 'info', 'dns');
+
+            // Reset timer & auto-increment session name to next default
+            recElapsedSeconds = 0;
+            if (recTimerDisplay) recTimerDisplay.textContent = '00:00:00';
+            updateDefaultSessionName();
+        });
+    }
+
     // ─── Lightbox / Image Preview Modal ────────────
     let lightboxEl = null;
     let lightboxZoom = 1;
@@ -1106,6 +1456,301 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeLightbox();
     });
+
+    // ─── Detection History Database Rendering ───────
+    async function renderHistoryRecords() {
+        const historyRecordsCount = document.getElementById('history-records-count');
+        const historyGridContainer = document.getElementById('history-grid-container');
+        if (!historyGridContainer) return;
+
+        const records = await getAllRecordsFromDB();
+
+        // Populate filters with unique attributes
+        const filterCamera = document.getElementById('filter-camera');
+        const filterPrinter = document.getElementById('filter-printer');
+        const filterModel = document.getElementById('filter-model');
+
+        if (filterCamera && filterPrinter && filterModel) {
+            const cameras = new Set();
+            const printers = new Set();
+            const models = new Set();
+            records.forEach(r => {
+                if (r.cameraName) cameras.add(r.cameraName);
+                if (r.printerName) printers.add(r.printerName);
+                if (r.modelName) models.add(r.modelName);
+            });
+
+            const popSelect = (el, set, defaultText) => {
+                const currentVal = el.value;
+                el.innerHTML = `<option value="">${defaultText}</option>` +
+                    Array.from(set).map(i => `<option value="${i}">${i}</option>`).join('');
+                if (set.has(currentVal)) {
+                    el.value = currentVal;
+                }
+            };
+            
+            popSelect(filterCamera, cameras, 'All Cameras');
+            popSelect(filterPrinter, printers, 'All Printers');
+            popSelect(filterModel, models, 'All Models');
+        }
+
+        const dateVal = document.getElementById('filter-date')?.value || '';
+        const cameraVal = filterCamera?.value || '';
+        const printerVal = filterPrinter?.value || '';
+        const modelVal = filterModel?.value || '';
+        const vramVal = document.getElementById('filter-vram')?.value || '';
+
+        let filteredRecords = records;
+        
+        if (dateVal) {
+            const [y, m, d] = dateVal.split('/');
+            filteredRecords = filteredRecords.filter(r => 
+                String(r.year) === y && 
+                String(r.month).padStart(2, '0') === m && 
+                String(r.day).padStart(2, '0') === d
+            );
+        }
+        if (cameraVal) filteredRecords = filteredRecords.filter(r => r.cameraName === cameraVal);
+        if (printerVal) filteredRecords = filteredRecords.filter(r => r.printerName === printerVal);
+        if (modelVal) filteredRecords = filteredRecords.filter(r => r.modelName === modelVal);
+        if (vramVal) {
+            const v = parseInt(vramVal, 10);
+            filteredRecords = filteredRecords.filter(r => (r.peakVram || 0) > v);
+        }
+
+        if (historyRecordsCount) {
+            historyRecordsCount.textContent = `Detection Log (${filteredRecords.length} DB Records)`;
+        }
+
+
+
+        if (filteredRecords.length === 0) {
+            historyGridContainer.innerHTML = '';
+            const pageContainer = document.getElementById('history-pagination-container');
+            if (pageContainer) pageContainer.classList.add('hidden');
+            return;
+        }
+
+        const reversedRecords = filteredRecords.slice().reverse();
+        const PAGE_SIZE = 12;
+        const totalPages = Math.ceil(reversedRecords.length / PAGE_SIZE);
+
+        if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+        if (historyCurrentPage < 1) historyCurrentPage = 1;
+
+        const startIndex = (historyCurrentPage - 1) * PAGE_SIZE;
+        const endIndex = Math.min(startIndex + PAGE_SIZE, reversedRecords.length);
+        const pageRecords = reversedRecords.slice(startIndex, endIndex);
+
+        // Update Pagination UI
+        const pageContainer = document.getElementById('history-pagination-container');
+        const pageInfo = document.getElementById('history-pagination-info');
+        const pageBtns = document.getElementById('history-pagination-buttons');
+
+        if (pageContainer && pageInfo && pageBtns) {
+            if (totalPages <= 1) {
+                pageContainer.classList.add('hidden');
+            } else {
+                pageContainer.classList.remove('hidden');
+                pageInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${reversedRecords.length}`;
+                
+                let btnsHtml = '';
+                btnsHtml += `<button onclick="window.setHistoryPage(${historyCurrentPage - 1})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors disabled:opacity-50" ${historyCurrentPage === 1 ? 'disabled' : ''}><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>`;
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i === historyCurrentPage) {
+                        btnsHtml += `<button class="w-8 h-8 rounded bg-primary text-on-primary-fixed flex items-center justify-center font-label-mono text-[12px]">${i}</button>`;
+                    } else {
+                        btnsHtml += `<button onclick="window.setHistoryPage(${i})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors font-label-mono text-[12px]">${i}</button>`;
+                    }
+                }
+                
+                btnsHtml += `<button onclick="window.setHistoryPage(${historyCurrentPage + 1})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors disabled:opacity-50" ${historyCurrentPage === totalPages ? 'disabled' : ''}><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>`;
+                
+                pageBtns.innerHTML = btnsHtml;
+            }
+        }
+
+        // Render DB records at the top of the grid
+        const dbCardsHtml = pageRecords.map(rec => {
+            const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
+            const activeDefects = Object.entries(rec.defectCounts || {}).filter(([_, c]) => c > 0);
+            
+            // Remove defectBadge from top right as requested
+            // const defectBadge = ...
+
+            const thumbnailHtml = rec.thumbnail 
+                ? `<div class="bg-surface-dim relative overflow-hidden h-24 border-b border-outline-variant/20">
+                     <img class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" src="${rec.thumbnail}" alt="Thumbnail">
+                   </div>`
+                : `<div class="bg-surface-dim relative overflow-hidden flex items-center justify-center h-24 border-b border-outline-variant/20">
+                     <span class="material-symbols-outlined text-outline-variant text-4xl">image_not_supported</span>
+                     <div class="absolute top-2 right-2 bg-surface-container-highest text-on-surface-variant font-label-mono text-[10px] px-2 py-0.5 rounded shadow-sm">No Video</div>
+                   </div>`;
+
+            // Stringify for onclick
+            const recJson = encodeURIComponent(JSON.stringify(rec));
+
+            return `
+                <div class="data-card rounded-lg overflow-hidden group cursor-pointer relative hover:border-primary transition-all border border-outline-variant/30" onclick="window.populatePreviewPanel(decodeURIComponent('${recJson}'))">
+                    ${thumbnailHtml}
+                    <div class="bg-surface-dim p-3 flex justify-between items-center">
+                        <span class="font-label-mono text-label-mono text-primary font-bold">${rec.sessionName}</span>
+                    </div>
+                    <div class="p-3 pt-0 space-y-2">
+                        <div class="flex justify-between items-center text-[10px] font-label-mono text-outline">
+                            <span>${timeStr}</span>
+                            <span class="text-primary font-semibold">Duration: ${rec.durationFormatted}</span>
+                        </div>
+                        <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px] text-primary">videocam</span> ${rec.cameraName}
+                        </div>
+                        <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px] text-secondary">print</span> ${rec.printerName}
+                        </div>
+                        <div class="font-label-mono text-[10px] text-on-surface-variant/70 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined text-[14px] text-tertiary">model_training</span> Model: ${rec.modelName} | Peak VRAM: ${rec.peakVram || 0}GB
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        historyGridContainer.innerHTML = dbCardsHtml;
+    }
+
+    window.setHistoryPage = function(page) {
+        historyCurrentPage = page;
+        renderHistoryRecords();
+    };
+
+    if (currentPage === 'detection_history.html') {
+        const filters = ['filter-date', 'filter-camera', 'filter-printer', 'filter-model', 'filter-vram'];
+        filters.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                historyCurrentPage = 1; // Reset to page 1 on filter change
+                renderHistoryRecords();
+            });
+        });
+
+        const clearBtn = document.getElementById('clear-filters-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                filters.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        if (id === 'filter-date' && el._flatpickr) el._flatpickr.clear();
+                        else el.value = '';
+                    }
+                });
+                historyCurrentPage = 1;
+                renderHistoryRecords();
+            });
+        }
+
+        renderHistoryRecords();
+        if (window.flatpickr) {
+            const fp = window.flatpickr('#filter-date', {
+                dateFormat: 'Y/m/d',
+                minDate: '2026-01-01',
+                maxDate: '2099-12-31',
+                onChange: function(selectedDates, dateStr, instance) {
+                    renderHistoryRecords();
+                }
+            });
+            const dateEl = document.getElementById('filter-date');
+            if (dateEl) dateEl._flatpickr = fp;
+        }
+    }
+
+    // Export preview panel function
+    window.populatePreviewPanel = function(jsonStr) {
+        try {
+            const rec = JSON.parse(jsonStr);
+            const detailPanel = document.getElementById('history-detail-panel');
+            const emptyPanel = document.getElementById('history-empty-panel');
+            if (!detailPanel || !emptyPanel) return;
+
+            // Hide empty, show detail
+            emptyPanel.classList.add('hidden');
+            detailPanel.classList.remove('hidden');
+
+            const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
+            
+            // Populate Image
+            const imgEl = document.getElementById('detail-image');
+            if (imgEl) {
+                if (rec.thumbnail) {
+                    imgEl.src = rec.thumbnail;
+                    imgEl.classList.remove('hidden');
+                } else {
+                    imgEl.classList.add('hidden');
+                }
+            }
+
+            // Populate Meta
+            const tsEl = document.getElementById('detail-timestamp');
+            if (tsEl) tsEl.textContent = timeStr;
+            const srcEl = document.getElementById('detail-source');
+            if (srcEl) srcEl.textContent = rec.cameraName;
+            const durEl = document.getElementById('detail-duration');
+            if (durEl) durEl.textContent = rec.durationFormatted;
+            const peakEl = document.getElementById('detail-peak-vram');
+            if (peakEl) peakEl.textContent = `${rec.peakVram || 0}GB`;
+
+            // Status & Defects
+            const statusEl = document.getElementById('detail-status');
+            const defectsList = document.getElementById('detail-defects-list');
+            const activeDefects = Object.entries(rec.defectCounts || {}).filter(([_, c]) => c > 0);
+
+            if (statusEl) {
+                if (activeDefects.length > 0) {
+                    statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Flagged (${rec.totalDefects} defects)`;
+                    statusEl.className = 'font-label-mono text-[13px] text-error flex items-center gap-1';
+                } else {
+                    statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Clean`;
+                    statusEl.className = 'font-label-mono text-[13px] text-secondary flex items-center gap-1';
+                }
+            }
+
+            if (defectsList) {
+                if (activeDefects.length > 0) {
+                    defectsList.innerHTML = activeDefects.map(([d, c]) => `
+                        <div>
+                            <div class="flex justify-between font-label-mono text-[11px] mb-1">
+                                <span class="text-error">${d}</span>
+                                <span class="text-on-surface-variant">${c} instances</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    defectsList.innerHTML = `
+                        <div>
+                            <div class="flex justify-between font-label-mono text-[11px] mb-1">
+                                <span class="text-secondary">No defects detected</span>
+                                <span class="text-on-surface-variant">0 instances</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            // Setup Delete Button
+            const delBtn = document.getElementById('delete-record-btn');
+            if (delBtn) {
+                delBtn.onclick = async () => {
+                    if (confirm('Are you sure you want to delete this record?')) {
+                        await window.deleteRecordFromDB(rec.id);
+                        emptyPanel.classList.remove('hidden');
+                        detailPanel.classList.add('hidden');
+                        renderHistoryRecords();
+                    }
+                };
+            }
+        } catch (e) {
+            console.error('Error parsing record JSON:', e);
+        }
+    };
 
     // ─── Page Fade-in ──────────────────────────────
     const appContainer = document.getElementById('app-container');
