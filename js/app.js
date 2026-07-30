@@ -18,6 +18,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let sessionThumbnail = '';
     let settingsConfirmed = false;
     let historyCurrentPage = 1;
+    let historyViewMode = 'grid'; // 'grid' | 'list'
+    let selectedRecord = null;
+    let currentSessionScreenshots = [];
+    let recordCanvas = document.createElement('canvas');
+    let recordCtx = recordCanvas.getContext('2d');
+    let recordAnimFrame = null;
+
+    function recordCompositeLoop() {
+        if (recState === 'RECORDING' || recState === 'PAUSED') {
+            if (cameraVideo && !cameraVideo.classList.contains('hidden') && cameraVideo.videoWidth > 0) {
+                recordCanvas.width = cameraVideo.videoWidth;
+                recordCanvas.height = cameraVideo.videoHeight;
+                recordCtx.drawImage(cameraVideo, 0, 0, recordCanvas.width, recordCanvas.height);
+
+                if (detectionCanvas && !detectionCanvas.classList.contains('hidden') && detectionCanvas.width > 0) {
+                    recordCtx.drawImage(detectionCanvas, 0, 0, recordCanvas.width, recordCanvas.height);
+                }
+            }
+            recordAnimFrame = requestAnimationFrame(recordCompositeLoop);
+        }
+    }
 
     // ─── Sidebar Toggle ────────────────────────────
     const sidebar = document.getElementById('sidebar');
@@ -33,65 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ─── Active Nav Highlighting ────────────────────
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    const navMap = {
-        'index.html': 'nav-home',
-        'detection_history.html': 'nav-history',
-        'ai_chat.html': 'nav-chat',
-        'settings.html': 'nav-settings-footer',
-        'settings_model.html': 'nav-settings-footer',
-        'settings_alert.html': 'nav-settings-footer',
-        'settings_camera.html': 'nav-settings-footer',
-        'user_profile.html': 'nav-profile-footer',
-    };
-
-    // Reset all nav links to inactive state
-    document.querySelectorAll('[data-nav]').forEach(el => {
-        el.classList.remove(
-            'text-primary', 'bg-primary-container/20',
-            'border-primary'
-        );
-        el.classList.add(
-            'text-on-surface-variant', 'border-transparent'
-        );
-        const icon = el.querySelector('.material-symbols-outlined');
-        if (icon) icon.style.fontVariationSettings = '';
-    });
-
-    // Activate the current nav
-    const activeNavId = navMap[currentPage];
-    if (activeNavId) {
-        const activeEl = document.getElementById(activeNavId);
-        if (activeEl) {
-            activeEl.classList.remove(
-                'text-on-surface-variant', 'border-transparent'
-            );
-            activeEl.classList.add(
-                'text-primary', 'bg-primary-container/20',
-                'border-primary'
-            );
-            const icon = activeEl.querySelector('.material-symbols-outlined');
-            if (icon) icon.style.fontVariationSettings = "'FILL' 1";
-        }
-    }
-
-    // Also handle footer buttons (settings & profile)
-    if (currentPage.startsWith('settings')) {
-        const settingsBtn = document.getElementById('nav-settings-footer');
-        if (settingsBtn) {
-            settingsBtn.classList.add('text-primary', 'bg-surface-bright/50');
-            settingsBtn.classList.remove('text-on-surface-variant');
-        }
-    }
-    if (currentPage === 'user_profile.html') {
-        const profileBtn = document.getElementById('nav-profile-footer');
-        if (profileBtn) {
-            profileBtn.classList.add('text-primary', 'bg-primary-container/20');
-            profileBtn.classList.remove('text-on-surface-variant');
-            profileBtn.classList.add('shadow-[0_0_10px_rgba(173,198,255,0.3)]');
-        }
-    }
+    // ─── Active Nav Highlighting logic removed (handled by router.js) ────────────
 
     // ─── Dynamic System Clock (TopAppBar) ──────────
     const clockEl = document.getElementById('system-clock');
@@ -508,7 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (noCameraPlaceholder) {
                     noCameraPlaceholder.classList.add('hidden');
                 }
-                if (recBadge) recBadge.classList.remove('hidden');
                 if (camLabel) {
                     camLabel.classList.remove('hidden');
                     camLabel.textContent = selectedLabel;
@@ -813,6 +775,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     capturesCount.textContent = `${screenshotCounter} capture${screenshotCounter > 1 ? 's' : ''}`;
                 }
 
+                // Add capture object to active session tracking
+                currentSessionScreenshots.push({
+                    id: screenshotCounter,
+                    name: `aegis_capture_${screenshotCounter}.png`,
+                    timeStr: timeStr,
+                    dataUrl: dataUrl
+                });
+
                 termLog(`SCREENSHOT: Capture #${screenshotCounter} saved. (${canvas.width}x${canvas.height})`, 'success');
             } catch (err) {
                 termLog(`SCREENSHOT: Failed — ${err.message}`, 'error');
@@ -1115,6 +1085,150 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function downloadSessionFiles(record, videoBlob, screenshots) {
+        try {
+            const sanitize = (str) => (str || 'Identify').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const prefix = `record/${sanitize(record.sessionName)}`;
+
+            // 1. Download Session Attributes Log JSON
+            const logData = {
+                sessionName: record.sessionName,
+                timestamp: `${record.year}-${String(record.month).padStart(2,'0')}-${String(record.day).padStart(2,'0')} ${String(record.hour).padStart(2,'0')}:${String(record.minute).padStart(2,'0')}:${String(record.second).padStart(2,'0')}`,
+                duration: record.durationFormatted,
+                cameraName: record.cameraName,
+                printerName: record.printerName,
+                modelName: record.modelName,
+                peakVram: `${record.peakVram || 0} GB`,
+                totalDefects: record.totalDefects,
+                defectCounts: record.defectCounts,
+                defectsDetected: record.defectsDetected
+            };
+            const logBlob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+            const logUrl = URL.createObjectURL(logBlob);
+            const aLog = document.createElement('a');
+            aLog.href = logUrl;
+            aLog.download = `${prefix}_log.json`;
+            document.body.appendChild(aLog);
+            aLog.click();
+            document.body.removeChild(aLog);
+            setTimeout(() => URL.revokeObjectURL(logUrl), 1000);
+
+            // 2. Download Video (.webm)
+            if (videoBlob && videoBlob.size > 0) {
+                const videoUrl = URL.createObjectURL(videoBlob);
+                const aVid = document.createElement('a');
+                aVid.href = videoUrl;
+                aVid.download = `${prefix}_video.webm`;
+                document.body.appendChild(aVid);
+                setTimeout(() => {
+                    aVid.click();
+                    document.body.removeChild(aVid);
+                    setTimeout(() => URL.revokeObjectURL(videoUrl), 1000);
+                }, 300);
+            }
+
+            // 3. Download Screenshots (.png)
+            if (screenshots && screenshots.length > 0) {
+                screenshots.forEach((shot, index) => {
+                    setTimeout(() => {
+                        const aImg = document.createElement('a');
+                        aImg.href = shot.dataUrl;
+                        aImg.download = `${prefix}_screenshots/shot_${index + 1}.png`;
+                        document.body.appendChild(aImg);
+                        aImg.click();
+                        document.body.removeChild(aImg);
+                    }, 600 + index * 300);
+                });
+            }
+
+            termLog(`LOCAL SAVE: Record files (video, ${screenshots ? screenshots.length : 0} screenshot(s), and log) exported to record folder.`, 'success');
+        } catch (err) {
+            console.error('Failed to export session files:', err);
+        }
+    }
+
+    window.exportRecordAsZip = async function(rec) {
+        if (!rec) return;
+
+        if (!window.JSZip) {
+            alert('JSZip library is loading. Please try again.');
+            return;
+        }
+
+        let fullRec = rec;
+        if (rec.id) {
+            try {
+                const db = await openDatabase();
+                const dbRec = await new Promise((resolve) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get(rec.id);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+                if (dbRec) fullRec = dbRec;
+            } catch (err) {
+                console.log('IndexedDB fetch error during ZIP export:', err);
+            }
+        }
+
+        try {
+            const zip = new JSZip();
+            const sanitize = (str) => (str || 'Identify').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const folderName = sanitize(fullRec.sessionName || 'Identify');
+
+            const sessionFolder = zip.folder(folderName);
+
+            // 1. Session Attribute Log JSON
+            const logData = {
+                sessionName: fullRec.sessionName,
+                timestamp: `${fullRec.year}-${String(fullRec.month).padStart(2,'0')}-${String(fullRec.day).padStart(2,'0')} ${String(fullRec.hour).padStart(2,'0')}:${String(fullRec.minute).padStart(2,'0')}:${String(fullRec.second).padStart(2,'0')}`,
+                duration: fullRec.durationFormatted,
+                cameraName: fullRec.cameraName,
+                printerName: fullRec.printerName,
+                modelName: fullRec.modelName,
+                peakVram: `${fullRec.peakVram || 0} GB`,
+                totalDefects: fullRec.totalDefects,
+                defectCounts: fullRec.defectCounts,
+                defectsDetected: fullRec.defectsDetected
+            };
+            sessionFolder.file(`${folderName}_log.json`, JSON.stringify(logData, null, 2));
+
+            // 2. Video file
+            if (fullRec.videoBlob && fullRec.videoBlob.size > 0) {
+                sessionFolder.file(`${folderName}_video.webm`, fullRec.videoBlob);
+            }
+
+            // 3. Screenshots folder
+            const shots = fullRec.screenshots || [];
+            if (shots.length > 0) {
+                const shotsFolder = sessionFolder.folder("screenshots");
+                shots.forEach((shot, index) => {
+                    if (shot.dataUrl) {
+                        const base64Data = shot.dataUrl.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
+                        shotsFolder.file(`shot_${index + 1}.png`, base64Data, { base64: true });
+                    }
+                });
+            }
+
+            // Generate ZIP blob and download
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            const zipUrl = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = zipUrl;
+            a.download = `${folderName}_package.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(zipUrl), 1000);
+
+            termLog(`ZIP EXPORT: ${folderName}_package.zip created & downloaded successfully!`, 'success');
+        } catch (err) {
+            console.error('Failed to create ZIP package:', err);
+            termLog(`ZIP ERROR: ${err.message}`, 'error');
+        }
+    };
+
     window.deleteRecordFromDB = async function(id) {
         try {
             const db = await openDatabase();
@@ -1174,9 +1288,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateRecUI() {
         if (!recStatusDot || !sessionStartBtn || !sessionPauseBtn || !sessionStopBtn) return;
+        
+        const recBadge = document.getElementById('rec-badge');
 
         if (recState === 'RECORDING') {
             recStatusDot.className = 'w-2 h-2 rounded-full bg-error animate-pulse shadow-[0_0_6px_rgba(255,68,68,0.8)]';
+            if (recBadge) {
+                recBadge.classList.remove('hidden');
+                recBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span> REC';
+            }
             sessionStartBtn.disabled = true;
             sessionStartBtn.className = 'flex-1 bg-surface-container opacity-50 text-on-surface-variant border border-outline-variant/30 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-not-allowed';
 
@@ -1188,10 +1308,18 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStopBtn.className = 'flex-1 bg-error/20 hover:bg-error/30 text-error border border-error/40 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer';
         } else if (recState === 'PAUSED') {
             recStatusDot.className = 'w-2 h-2 rounded-full bg-[#ffb74d] shadow-[0_0_6px_rgba(255,183,77,0.8)]';
+            if (recBadge) {
+                recBadge.classList.remove('hidden');
+                recBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#ffea00]"></span> PAUSED';
+            }
             sessionPauseBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">play_arrow</span>Resume';
         } else {
             // IDLE
             recStatusDot.className = 'w-2 h-2 rounded-full bg-outline';
+            if (recBadge) {
+                recBadge.classList.remove('hidden');
+                recBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#ff8c00]"></span> READY';
+            }
             if (settingsConfirmed) {
                 sessionStartBtn.disabled = false;
                 sessionStartBtn.className = 'flex-1 bg-secondary/20 hover:bg-secondary/30 text-secondary border border-secondary/40 font-label-mono text-[11px] font-semibold py-1.5 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer';
@@ -1216,6 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recElapsedSeconds = 0;
             sessionPeakVram = window.aegisSystemState.vramUsage || 0;
             sessionDefectCounts = { 'Layer Shift': 0, 'Warping': 0, 'Stringing': 0, 'Over-extrusion': 0 };
+            currentSessionScreenshots = [];
 
             // Capture thumbnail
             sessionThumbnail = '';
@@ -1251,15 +1380,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }, 1000);
 
-            // Start MediaRecorder if video stream is available
+            // Start MediaRecorder with composite stream (Camera Video + Detection Overlay)
             if (activeCameraStream) {
                 try {
                     recordedChunks = [];
-                    mediaRecorder = new MediaRecorder(activeCameraStream);
+                    recordCanvas.width = cameraVideo ? (cameraVideo.videoWidth || 640) : 640;
+                    recordCanvas.height = cameraVideo ? (cameraVideo.videoHeight || 480) : 480;
+
+                    if (cameraVideo && !cameraVideo.classList.contains('hidden')) {
+                        recordCtx.drawImage(cameraVideo, 0, 0, recordCanvas.width, recordCanvas.height);
+                        if (detectionCanvas && !detectionCanvas.classList.contains('hidden') && detectionCanvas.width > 0) {
+                            recordCtx.drawImage(detectionCanvas, 0, 0, recordCanvas.width, recordCanvas.height);
+                        }
+                    }
+
+                    const compositeStream = recordCanvas.captureStream(30);
+                    mediaRecorder = new MediaRecorder(compositeStream, { mimeType: 'video/webm' });
                     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                     mediaRecorder.start(1000);
+
+                    if (recordAnimFrame) cancelAnimationFrame(recordAnimFrame);
+                    recordCompositeLoop();
                 } catch (e) {
-                    console.log('MediaRecorder error:', e);
+                    console.log('Composite MediaRecorder error, falling back to raw stream:', e);
+                    try {
+                        recordedChunks = [];
+                        mediaRecorder = new MediaRecorder(activeCameraStream);
+                        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                        mediaRecorder.start(1000);
+                    } catch (err) {
+                        console.log('MediaRecorder fallback error:', err);
+                    }
                 }
             }
 
@@ -1294,68 +1445,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 recInterval = null;
             }
 
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
+            if (recordAnimFrame) {
+                cancelAnimationFrame(recordAnimFrame);
+                recordAnimFrame = null;
             }
+
+            const finalizeAndSave = async () => {
+                const sessionName = sessionNameInput ? sessionNameInput.value.trim() || 'Identify-0' : 'Identify-0';
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                const day = now.getDate();
+                const hour = now.getHours();
+                const minute = now.getMinutes();
+                const second = now.getSeconds();
+
+                const cameraName = (cameraSelect && cameraSelect.selectedIndex > 0) ? cameraSelect.options[cameraSelect.selectedIndex].textContent : 'CAM-01 (Default)';
+                const printerName = (printerSelect && printerSelect.selectedIndex > 0) ? printerSelect.options[printerSelect.selectedIndex].textContent : 'Standard Printer';
+                const modelName = window.aegisSystemState.loadedModelName || 'None';
+
+                const activeDefects = Object.entries(sessionDefectCounts).filter(([_, cnt]) => cnt > 0);
+                const defectsDetected = activeDefects.map(([d, _]) => d);
+                const totalDefects = activeDefects.reduce((acc, [_, cnt]) => acc + cnt, 0);
+
+                let videoBlob = null;
+                if (recordedChunks && recordedChunks.length > 0) {
+                    try {
+                        videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                    } catch (err) {
+                        console.log('Failed to generate video Blob:', err);
+                    }
+                }
+
+                const record = {
+                    sessionName,
+                    year, month, day, hour, minute, second,
+                    durationSeconds: recElapsedSeconds,
+                    durationFormatted: formatTimeDisplay(recElapsedSeconds),
+                    cameraName,
+                    printerName,
+                    modelName,
+                    defectsDetected,
+                    defectCounts: sessionDefectCounts,
+                    totalDefects,
+                    peakVram: sessionPeakVram,
+                    thumbnail: sessionThumbnail,
+                    videoBlob: videoBlob,
+                    screenshots: [...currentSessionScreenshots],
+                    createdAt: Date.now()
+                };
+
+                // Save to IndexedDB database
+                const savedId = await saveRecordToDB(record);
+                if (savedId) record.id = savedId;
+
+                const defectSummaryStr = activeDefects.length > 0
+                    ? activeDefects.map(([d, c]) => `${d} (${c}x)`).join(', ')
+                    : 'None (Pass)';
+
+                termLog('═══════════════════════════════════════════');
+                termLog(`SESSION: Identification "${sessionName}" finished & saved to DB!`, 'success');
+                termLog(`  → Time:     ${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
+                termLog(`  → Duration: ${record.durationFormatted}`);
+                termLog(`  → Camera:   ${cameraName}`);
+                termLog(`  → Printer:  ${printerName}`);
+                termLog(`  → Defects:  ${defectSummaryStr}`);
+                termLog('═══════════════════════════════════════════');
+
+                window.addNotification(`Session "${sessionName}" saved to Database. Duration: ${record.durationFormatted}`, 'info', 'dns');
+
+                // Reset timer & auto-increment session name to next default
+                recElapsedSeconds = 0;
+                if (recTimerDisplay) recTimerDisplay.textContent = '00:00:00';
+                updateDefaultSessionName();
+            };
 
             recState = 'IDLE';
             updateRecUI();
 
-            const sessionName = sessionNameInput ? sessionNameInput.value.trim() || 'Identify-0' : 'Identify-0';
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const hour = now.getHours();
-            const minute = now.getMinutes();
-            const second = now.getSeconds();
-
-            const cameraName = (cameraSelect && cameraSelect.selectedIndex > 0) ? cameraSelect.options[cameraSelect.selectedIndex].textContent : 'CAM-01 (Default)';
-            const printerName = (printerSelect && printerSelect.selectedIndex > 0) ? printerSelect.options[printerSelect.selectedIndex].textContent : 'Standard Printer';
-            const modelName = window.aegisSystemState.loadedModelName || 'None';
-
-            const activeDefects = Object.entries(sessionDefectCounts).filter(([_, cnt]) => cnt > 0);
-            const defectsDetected = activeDefects.map(([d, _]) => d);
-            const totalDefects = activeDefects.reduce((acc, [_, cnt]) => acc + cnt, 0);
-
-            const record = {
-                sessionName,
-                year, month, day, hour, minute, second,
-                durationSeconds: recElapsedSeconds,
-                durationFormatted: formatTimeDisplay(recElapsedSeconds),
-                cameraName,
-                printerName,
-                modelName,
-                defectsDetected,
-                defectCounts: sessionDefectCounts,
-                totalDefects,
-                peakVram: sessionPeakVram,
-                thumbnail: sessionThumbnail,
-                createdAt: Date.now()
-            };
-
-            // Save to IndexedDB database
-            await saveRecordToDB(record);
-
-            const defectSummaryStr = activeDefects.length > 0
-                ? activeDefects.map(([d, c]) => `${d} (${c}x)`).join(', ')
-                : 'None (Pass)';
-
-            termLog('═══════════════════════════════════════════');
-            termLog(`SESSION: Identification "${sessionName}" finished & saved to DB!`, 'success');
-            termLog(`  → Time:     ${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
-            termLog(`  → Duration: ${record.durationFormatted}`);
-            termLog(`  → Camera:   ${cameraName}`);
-            termLog(`  → Printer:  ${printerName}`);
-            termLog(`  → Defects:  ${defectSummaryStr}`);
-            termLog('═══════════════════════════════════════════');
-
-            window.addNotification(`Session "${sessionName}" saved to Database. Duration: ${record.durationFormatted}`, 'info', 'dns');
-
-            // Reset timer & auto-increment session name to next default
-            recElapsedSeconds = 0;
-            if (recTimerDisplay) recTimerDisplay.textContent = '00:00:00';
-            updateDefaultSessionName();
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.onstop = () => {
+                    finalizeAndSave();
+                };
+                mediaRecorder.stop();
+            } else {
+                finalizeAndSave();
+            }
         });
     }
 
@@ -1571,50 +1746,90 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Render DB records at the top of the grid
-        const dbCardsHtml = pageRecords.map(rec => {
+        // Render DB records
+        let dbCardsHtml = pageRecords.map(rec => {
             const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
             const activeDefects = Object.entries(rec.defectCounts || {}).filter(([_, c]) => c > 0);
-            
-            // Remove defectBadge from top right as requested
-            // const defectBadge = ...
-
-            const thumbnailHtml = rec.thumbnail 
-                ? `<div class="bg-surface-dim relative overflow-hidden h-24 border-b border-outline-variant/20">
-                     <img class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" src="${rec.thumbnail}" alt="Thumbnail">
-                   </div>`
-                : `<div class="bg-surface-dim relative overflow-hidden flex items-center justify-center h-24 border-b border-outline-variant/20">
-                     <span class="material-symbols-outlined text-outline-variant text-4xl">image_not_supported</span>
-                     <div class="absolute top-2 right-2 bg-surface-container-highest text-on-surface-variant font-label-mono text-[10px] px-2 py-0.5 rounded shadow-sm">No Video</div>
-                   </div>`;
-
-            // Stringify for onclick
             const recJson = encodeURIComponent(JSON.stringify(rec));
 
-            return `
-                <div class="data-card rounded-lg overflow-hidden group cursor-pointer relative hover:border-primary transition-all border border-outline-variant/30" onclick="window.populatePreviewPanel(decodeURIComponent('${recJson}'))">
-                    ${thumbnailHtml}
-                    <div class="bg-surface-dim p-3 flex justify-between items-center">
-                        <span class="font-label-mono text-label-mono text-primary font-bold">${rec.sessionName}</span>
+            if (historyViewMode === 'list') {
+                // List view row
+                const statusBadge = activeDefects.length > 0
+                    ? `<span class="bg-error/20 text-error border border-error/30 font-label-mono text-[10px] px-2 py-0.5 rounded">Flagged</span>`
+                    : `<span class="bg-secondary/20 text-secondary border border-secondary/30 font-label-mono text-[10px] px-2 py-0.5 rounded">Clean</span>`;
+                return `
+                    <div class="flex items-center gap-4 p-3 rounded-lg border border-outline-variant/30 hover:border-primary cursor-pointer transition-all bg-surface-dim/50 hover:bg-surface-container/50" onclick="window.populatePreviewPanel(decodeURIComponent('${recJson}'))">
+                        <div class="w-16 h-12 rounded overflow-hidden shrink-0 bg-surface-container">
+                            ${rec.thumbnail ? `<img class="w-full h-full object-cover" src="${rec.thumbnail}" alt="Thumb">` : `<div class="w-full h-full flex items-center justify-center"><span class="material-symbols-outlined text-outline-variant text-xl">image_not_supported</span></div>`}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-label-mono text-[12px] text-primary font-bold truncate">${rec.sessionName}</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="font-label-mono text-[10px] text-outline mt-0.5">${timeStr} · ${rec.durationFormatted}</div>
+                        </div>
+                        <div class="shrink-0 text-right space-y-0.5">
+                            <div class="font-label-mono text-[10px] text-on-surface-variant flex items-center gap-1 justify-end"><span class="material-symbols-outlined text-[12px] text-primary">videocam</span>${rec.cameraName}</div>
+                            <div class="font-label-mono text-[10px] text-on-surface-variant flex items-center gap-1 justify-end"><span class="material-symbols-outlined text-[12px] text-secondary">print</span>${rec.printerName}</div>
+                        </div>
+                        <div class="shrink-0 text-right">
+                            <div class="font-label-mono text-[10px] text-on-surface-variant/70">VRAM: ${rec.peakVram || 0}GB</div>
+                            <div class="font-label-mono text-[10px] text-on-surface-variant/70">${rec.modelName}</div>
+                        </div>
                     </div>
-                    <div class="p-3 pt-0 space-y-2">
-                        <div class="flex justify-between items-center text-[10px] font-label-mono text-outline">
-                            <span>${timeStr}</span>
-                            <span class="text-primary font-semibold">Duration: ${rec.durationFormatted}</span>
+                `;
+            } else {
+                // Grid view card (original)
+                const thumbnailHtml = rec.thumbnail 
+                    ? `<div class="bg-surface-dim relative overflow-hidden h-24 border-b border-outline-variant/20">
+                         <img class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" src="${rec.thumbnail}" alt="Thumbnail">
+                       </div>`
+                    : `<div class="bg-surface-dim relative overflow-hidden flex items-center justify-center h-24 border-b border-outline-variant/20">
+                         <span class="material-symbols-outlined text-outline-variant text-4xl">image_not_supported</span>
+                         <div class="absolute top-2 right-2 bg-surface-container-highest text-on-surface-variant font-label-mono text-[10px] px-2 py-0.5 rounded shadow-sm">No Video</div>
+                       </div>`;
+
+                return `
+                    <div class="data-card rounded-lg overflow-hidden group cursor-pointer relative hover:border-primary transition-all border border-outline-variant/30" onclick="window.populatePreviewPanel(decodeURIComponent('${recJson}'))">
+                        ${thumbnailHtml}
+                        <div class="bg-surface-dim p-3 flex justify-between items-center">
+                            <span class="font-label-mono text-label-mono text-primary font-bold">${rec.sessionName}</span>
                         </div>
-                        <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[14px] text-primary">videocam</span> ${rec.cameraName}
-                        </div>
-                        <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[14px] text-secondary">print</span> ${rec.printerName}
-                        </div>
-                        <div class="font-label-mono text-[10px] text-on-surface-variant/70 flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[14px] text-tertiary">model_training</span> Model: ${rec.modelName} | Peak VRAM: ${rec.peakVram || 0}GB
+                        <div class="p-3 pt-0 space-y-2">
+                            <div class="flex justify-between items-center text-[10px] font-label-mono text-outline">
+                                <span>${timeStr}</span>
+                                <span class="text-primary font-semibold">Duration: ${rec.durationFormatted}</span>
+                            </div>
+                            <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px] text-primary">videocam</span> ${rec.cameraName}
+                            </div>
+                            <div class="font-label-mono text-[11px] text-on-surface-variant flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px] text-secondary">print</span> ${rec.printerName}
+                            </div>
+                            <div class="font-label-mono text-[10px] text-on-surface-variant/70 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[14px] text-tertiary">model_training</span> Model: ${rec.modelName} | Peak VRAM: ${rec.peakVram || 0}GB
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }).join('');
+
+        // Add invisible placeholder cards to maintain grid size if in grid mode
+        if (historyViewMode === 'grid' && pageRecords.length < PAGE_SIZE) {
+            const emptySlots = PAGE_SIZE - pageRecords.length;
+            for (let i = 0; i < emptySlots; i++) {
+                dbCardsHtml += '<div class="glass-panel p-0 rounded-xl overflow-hidden opacity-0 pointer-events-none border border-transparent h-full min-h-[16rem]"></div>';
+            }
+        }
+
+        // Update grid container classes based on view mode
+        if (historyViewMode === 'list') {
+            historyGridContainer.className = 'flex flex-col gap-2 content-start';
+        } else {
+            historyGridContainer.className = 'grid grid-cols-2 lg:grid-cols-3 gap-4 content-start';
+        }
 
         historyGridContainer.innerHTML = dbCardsHtml;
     }
@@ -1624,45 +1839,72 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHistoryRecords();
     };
 
-    if (currentPage === 'detection_history.html') {
-        const filters = ['filter-date', 'filter-camera', 'filter-printer', 'filter-model', 'filter-vram'];
-        filters.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('change', () => {
-                historyCurrentPage = 1; // Reset to page 1 on filter change
-                renderHistoryRecords();
-            });
+    // View toggle buttons
+    const viewListBtn = document.getElementById('view-list-btn');
+    const viewGridBtn = document.getElementById('view-grid-btn');
+    if (viewListBtn && viewGridBtn) {
+        viewListBtn.addEventListener('click', () => {
+            historyViewMode = 'list';
+            viewListBtn.classList.add('text-primary');
+            viewListBtn.classList.remove('text-outline');
+            viewGridBtn.classList.remove('text-primary');
+            viewGridBtn.classList.add('text-outline');
+            renderHistoryRecords();
         });
+        viewGridBtn.addEventListener('click', () => {
+            historyViewMode = 'grid';
+            viewGridBtn.classList.add('text-primary');
+            viewGridBtn.classList.remove('text-outline');
+            viewListBtn.classList.remove('text-primary');
+            viewListBtn.classList.add('text-outline');
+            renderHistoryRecords();
+        });
+    }
 
-        const clearBtn = document.getElementById('clear-filters-btn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                filters.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        if (id === 'filter-date' && el._flatpickr) el._flatpickr.clear();
-                        else el.value = '';
-                    }
-                });
-                historyCurrentPage = 1;
-                renderHistoryRecords();
-            });
-        }
+    const filters = ['filter-date', 'filter-camera', 'filter-printer', 'filter-model', 'filter-vram'];
+    filters.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            historyCurrentPage = 1;
+            renderHistoryRecords();
+        });
+    });
 
-        renderHistoryRecords();
-        if (window.flatpickr) {
-            const fp = window.flatpickr('#filter-date', {
-                dateFormat: 'Y/m/d',
-                minDate: '2026-01-01',
-                maxDate: '2099-12-31',
-                onChange: function(selectedDates, dateStr, instance) {
-                    renderHistoryRecords();
+    const clearBtn = document.getElementById('clear-filters-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            filters.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (id === 'filter-date' && el._flatpickr) el._flatpickr.clear();
+                    else el.value = '';
                 }
             });
-            const dateEl = document.getElementById('filter-date');
-            if (dateEl) dateEl._flatpickr = fp;
-        }
+            historyCurrentPage = 1;
+            renderHistoryRecords();
+        });
     }
+
+    renderHistoryRecords();
+    if (window.flatpickr) {
+        const fp = window.flatpickr('#filter-date', {
+            dateFormat: 'Y/m/d',
+            minDate: '2026-01-01',
+            maxDate: '2099-12-31',
+            onChange: function(selectedDates, dateStr, instance) {
+                renderHistoryRecords();
+            }
+        });
+        const dateEl = document.getElementById('filter-date');
+        if (dateEl) dateEl._flatpickr = fp;
+    }
+
+    window.addEventListener('spa:view-loaded', (e) => {
+        if (e.detail.viewId === 'view-history') {
+            renderHistoryRecords();
+        }
+    });
+
 
     // Export preview panel function
     window.populatePreviewPanel = function(jsonStr) {
@@ -1735,6 +1977,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 }
             }
+            // Store selected record for View full record
+            selectedRecord = rec;
+
+            // Setup View full record Button
+            const viewBtn = document.getElementById('view-full-record-btn');
+            if (viewBtn) {
+                viewBtn.onclick = () => {
+                    if (selectedRecord) {
+                        localStorage.setItem('aegis_view_record', JSON.stringify(selectedRecord));
+                        if (window.spaLoadRoute) window.spaLoadRoute('record_detail.html');
+                    }
+                };
+            }
+
+            // Setup Download Button in Detail Header
+            const headerActions = document.getElementById('detail-header-actions');
+            if (headerActions) headerActions.classList.remove('hidden');
+
+            const dlBtn = document.getElementById('detail-download-btn');
+            if (dlBtn) {
+                dlBtn.onclick = () => {
+                    window.exportRecordAsZip(rec);
+                };
+            }
+
             // Setup Delete Button
             const delBtn = document.getElementById('delete-record-btn');
             if (delBtn) {
@@ -1743,6 +2010,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         await window.deleteRecordFromDB(rec.id);
                         emptyPanel.classList.remove('hidden');
                         detailPanel.classList.add('hidden');
+                        if (headerActions) headerActions.classList.add('hidden');
+                        selectedRecord = null;
                         renderHistoryRecords();
                     }
                 };
@@ -1756,5 +2025,216 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContainer = document.getElementById('app-container');
     if (appContainer) {
         appContainer.classList.add('page-fade-in');
+    }
+});
+
+
+window.initRecordDetailView = async () => {
+    // Back buttons
+    document.getElementById('back-btn')?.addEventListener('click', () => {
+        document.getElementById('nav-history').click();
+    });
+    document.getElementById('rd-back-btn')?.addEventListener('click', () => {
+        document.getElementById('nav-history').click();
+    });
+
+    const rawData = localStorage.getItem('aegis_view_record');
+    if (!rawData) {
+        document.getElementById('rd-no-record')?.classList.remove('hidden');
+        document.getElementById('rd-content')?.classList.add('hidden');
+        return;
+    }
+
+    let rec = JSON.parse(rawData);
+
+    // Fetch full record (with videoBlob & screenshots) from IndexedDB if available
+    try {
+        const DB_NAME = 'AegisVisionDB';
+        const STORE_NAME = 'identifications';
+        const db = await new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = () => reject(null);
+        });
+
+        if (db && rec.id) {
+            const dbRec = await new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.get(rec.id);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+            if (dbRec) rec = dbRec;
+        }
+    } catch (e) {
+        console.log('IDB fetch fallback:', e);
+    }
+
+    try {
+        const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
+
+        // Helper for setting text
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+        // Header
+        setText('rd-header-title', rec.sessionName || 'Record Detail');
+        setText('rd-session-name', rec.sessionName || '--');
+        setText('rd-session-time', timeStr);
+
+        // Video & Media Player Setup
+        const videoEl = document.getElementById('rd-video');
+        const thumbEl = document.getElementById('rd-thumbnail');
+        const noMediaEl = document.getElementById('rd-no-media');
+        const tabVideoBtn = document.getElementById('rd-tab-video-btn');
+        const tabThumbBtn = document.getElementById('rd-tab-thumb-btn');
+
+        let videoAvailable = false;
+        let thumbAvailable = false;
+
+        if (rec.videoBlob && rec.videoBlob.size > 0) {
+            videoEl.src = URL.createObjectURL(rec.videoBlob);
+            videoAvailable = true;
+        }
+
+        if (rec.thumbnail) {
+            thumbEl.src = rec.thumbnail;
+            thumbAvailable = true;
+        }
+
+        const showVideo = () => {
+            if (videoAvailable) {
+                videoEl.classList.remove('hidden');
+                thumbEl.classList.add('hidden');
+                noMediaEl.classList.add('hidden');
+                tabVideoBtn.className = 'px-3 py-1 rounded bg-primary/20 text-primary border border-primary/30';
+                tabThumbBtn.className = 'px-3 py-1 rounded bg-surface-dim text-outline hover:text-on-surface';
+            }
+        };
+
+        const showThumb = () => {
+            if (thumbAvailable) {
+                thumbEl.classList.remove('hidden');
+                videoEl.classList.add('hidden');
+                noMediaEl.classList.add('hidden');
+                tabThumbBtn.className = 'px-3 py-1 rounded bg-primary/20 text-primary border border-primary/30';
+                tabVideoBtn.className = 'px-3 py-1 rounded bg-surface-dim text-outline hover:text-on-surface';
+            }
+        };
+
+        tabVideoBtn.addEventListener('click', showVideo);
+        tabThumbBtn.addEventListener('click', showThumb);
+
+        if (videoAvailable) {
+            showVideo();
+        } else if (thumbAvailable) {
+            showThumb();
+        } else {
+            noMediaEl.classList.remove('hidden');
+        }
+
+        // Screenshots Gallery Setup
+        const screenshotsGrid = document.getElementById('rd-screenshots-grid');
+        const screenshotCount = document.getElementById('rd-screenshot-count');
+        const shots = rec.screenshots || [];
+
+        if (screenshotCount) screenshotCount.textContent = shots.length;
+
+        if (screenshotsGrid) {
+            if (shots.length === 0) {
+                screenshotsGrid.innerHTML = `
+                    <div class="flex items-center justify-center w-full text-outline-variant/60 font-label-mono text-[12px] gap-2">
+                        <span class="material-symbols-outlined text-[18px]">photo_camera_off</span> No screenshots taken during this session
+                    </div>
+                `;
+            } else {
+                screenshotsGrid.innerHTML = shots.map((shot, idx) => `
+                    <div class="relative rounded-lg overflow-hidden border border-outline-variant/30 group cursor-pointer shrink-0 h-32 w-52 bg-black/60 shadow hover:border-primary transition-all">
+                        <img src="${shot.dataUrl}" alt="Screenshot ${idx+1}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
+                            <div class="flex items-center justify-between font-label-mono text-[9px]">
+                                <span class="text-on-surface/90 font-bold">#${idx + 1}</span>
+                                <span class="text-primary">${shot.timeStr || ''}</span>
+                            </div>
+                        </div>
+                        <a href="${shot.dataUrl}" download="screenshot_${idx + 1}.png" class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 rounded-full p-1 text-on-surface hover:text-primary">
+                            <span class="material-symbols-outlined text-[13px]">download</span>
+                        </a>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Metadata Readout
+        setHtml('rd-camera', `<span class="material-symbols-outlined text-[16px] text-primary">videocam</span> ${rec.cameraName || '--'}`);
+        setHtml('rd-printer', `<span class="material-symbols-outlined text-[16px] text-secondary">print</span> ${rec.printerName || '--'}`);
+        setHtml('rd-model', `<span class="material-symbols-outlined text-[16px] text-tertiary">model_training</span> ${rec.modelName || '--'}`);
+        setHtml('rd-duration', `<span class="material-symbols-outlined text-[16px] text-primary">timer</span> ${rec.durationFormatted || '--'}`);
+        setHtml('rd-vram', `<span class="material-symbols-outlined text-[16px] text-primary">memory</span> ${rec.peakVram || 0} GB`);
+        setHtml('rd-total-defects', `<span class="material-symbols-outlined text-[16px] text-error">warning</span> ${rec.totalDefects || 0}`);
+
+        // Status
+        const activeDefects = Object.entries(rec.defectCounts || {}).filter(([_, c]) => c > 0);
+        if (activeDefects.length > 0) {
+            setHtml('rd-status', `<span class="w-2.5 h-2.5 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.5)]"></span><span class="text-error font-semibold">Flagged</span><span class="text-outline text-[11px]">(${rec.totalDefects} total defects detected)</span>`);
+        } else {
+            setHtml('rd-status', `<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_8px_rgba(78,222,163,0.5)]"></span><span class="text-secondary font-semibold">Clean</span><span class="text-outline text-[11px]">(No defects detected)</span>`);
+        }
+
+        // Defects List
+        const allDefects = Object.entries(rec.defectCounts || {});
+        if (allDefects.length > 0) {
+            setHtml('rd-defects-list', allDefects.map(([name, count]) => {
+                const maxCount = Math.max(...Object.values(rec.defectCounts || {}), 1);
+                const pct = Math.round((count / maxCount) * 100);
+                const color = count > 0 ? 'error' : 'outline-variant';
+                return `
+                    <div>
+                        <div class="flex justify-between font-label-mono text-[11px] mb-1">
+                            <span class="text-${count > 0 ? 'error' : 'on-surface-variant'}">${name}</span>
+                            <span class="text-on-surface-variant">${count} instances</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-surface-dim rounded-full overflow-hidden">
+                            <div class="h-full bg-${color} rounded-full transition-all duration-500" style="width: ${count > 0 ? pct : 0}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join(''));
+        } else {
+            setHtml('rd-defects-list', `<div class="font-label-mono text-[11px] text-secondary">No defect categories recorded.</div>`);
+        }
+
+        // Download ZIP Package Button
+        document.getElementById('rd-download-btn')?.addEventListener('click', () => {
+            if (window.exportRecordAsZip) {
+                window.exportRecordAsZip(rec);
+            }
+        });
+
+        // Delete button
+        document.getElementById('rd-delete-btn')?.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete this record?')) {
+                if (window.deleteRecordFromDB && rec.id) {
+                    await window.deleteRecordFromDB(rec.id);
+                }
+                localStorage.removeItem('aegis_view_record');
+                document.getElementById('nav-history').click();
+            }
+        });
+
+    } catch (e) {
+        console.error('Failed to render record detail:', e);
+        document.getElementById('rd-no-record')?.classList.remove('hidden');
+        document.getElementById('rd-content')?.classList.add('hidden');
+    }
+};
+
+
+window.addEventListener('spa:view-loaded', (e) => {
+    if (e.detail.viewId === 'view-record-detail') {
+        if (typeof window.initRecordDetailView === 'function') {
+            window.initRecordDetailView();
+        }
     }
 });
