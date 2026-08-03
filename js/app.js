@@ -183,8 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
             statusText.className = 'font-label-mono text-[10px] text-error tracking-widest uppercase';
             statusText.textContent = 'System Offline';
         }
-
-        updateResourceUsage();
     }
 
     window.updateSystemStatus = (cameraOnline, modelOnline) => {
@@ -204,73 +202,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const vramAppBar = document.getElementById('vram-app-bar');
     const vramOtherBar = document.getElementById('vram-other-bar');
 
-    function updateResourceUsage() {
-        if (!computeLoadVal || !computeAppBar || !computeOtherBar || !vramUsageVal || !vramAppBar || !vramOtherBar) return;
-
-        const { cameraOnline, modelOnline } = window.aegisSystemState;
-        const totalVramCap = 8.0;
-
-        // Base App CPU and VRAM
-        let baseAppCpu = 3;
-        let cpuRange = 3;
-        let baseAppVram = 0.3;
-        let vramRange = 0.2;
-
-        if (cameraOnline && modelOnline) {
-            baseAppCpu = 55;
-            cpuRange = 15;
-            baseAppVram = 4.6;
-            vramRange = 0.8;
-        } else if (cameraOnline) {
-            baseAppCpu = 24;
-            cpuRange = 8;
-            baseAppVram = 1.6;
-            vramRange = 0.4;
-        } else if (modelOnline) {
-            baseAppCpu = 30;
-            cpuRange = 10;
-            baseAppVram = 2.9;
-            vramRange = 0.5;
+    let telemetryWS = null;
+    function connectTelemetryWS() {
+        try {
+            telemetryWS = new WebSocket('ws://localhost:8000/ws/telemetry');
+            telemetryWS.onmessage = (event) => {
+                if (!computeLoadVal || !computeAppBar || !computeOtherBar || !vramUsageVal || !vramAppBar || !vramOtherBar) return;
+                const data = JSON.parse(event.data);
+                const { appCpu, otherCpu, totalCpu, appVram, otherVram, totalVramUsed, totalVramCap } = data;
+                
+                window.aegisSystemState.vramUsage = totalVramUsed;
+                
+                computeLoadVal.textContent = `${totalCpu}%`;
+                if (computeLoadSub) computeLoadSub.textContent = `Other ${otherCpu}% | Aegis ${appCpu}%`;
+                computeAppBar.style.width = `${appCpu}%`;
+                computeOtherBar.style.width = `${otherCpu}%`;
+                
+                vramUsageVal.innerHTML = `${totalVramUsed}<span class="text-[12px] text-on-surface-variant">GB</span>`;
+                if (vramUsageSub) vramUsageSub.textContent = `Other ${otherVram}G | Aegis ${appVram}G`;
+                
+                const appVramPct = (appVram / totalVramCap) * 100;
+                const otherVramPct = (otherVram / totalVramCap) * 100;
+                vramAppBar.style.width = `${Math.min(100, appVramPct)}%`;
+                vramOtherBar.style.width = `${Math.min(100, otherVramPct)}%`;
+            };
+            telemetryWS.onclose = () => {
+                setTimeout(connectTelemetryWS, 5000); // Reconnect
+            };
+        } catch(e) {
+            console.error("Telemetry WS Error:", e);
         }
-
-        // Base System/Other CPU and VRAM
-        const baseOtherCpu = 12;
-        const otherCpuRange = 6;
-        const baseOtherVram = 1.2;
-        const otherVramRange = 0.3;
-
-        // Calculate values
-        const appCpu = Math.min(85, Math.max(1, Math.floor(baseAppCpu + (Math.random() * cpuRange - cpuRange / 2))));
-        const otherCpu = Math.min(30, Math.max(5, Math.floor(baseOtherCpu + (Math.random() * otherCpuRange - otherCpuRange / 2))));
-        const totalCpu = Math.min(99, appCpu + otherCpu);
-
-        const appVram = Math.min(6.5, Math.max(0.2, parseFloat((baseAppVram + (Math.random() * vramRange - vramRange / 2)).toFixed(1))));
-        const otherVram = Math.min(2.0, Math.max(0.8, parseFloat((baseOtherVram + (Math.random() * otherVramRange - otherVramRange / 2)).toFixed(1))));
-        const totalVramUsed = Math.min(7.9, parseFloat((appVram + otherVram).toFixed(1)));
-        window.aegisSystemState.vramUsage = totalVramUsed;
-
-        // Update Compute Load UI
-        computeLoadVal.textContent = `${totalCpu}%`;
-        if (computeLoadSub) {
-            computeLoadSub.textContent = `Other ${otherCpu}% | Aegis ${appCpu}%`;
-        }
-        computeAppBar.style.width = `${appCpu}%`;
-        computeOtherBar.style.width = `${otherCpu}%`;
-
-        // Update VRAM UI
-        vramUsageVal.innerHTML = `${totalVramUsed}<span class="text-[12px] text-on-surface-variant">GB</span>`;
-        if (vramUsageSub) {
-            vramUsageSub.textContent = `Other ${otherVram}G | Aegis ${appVram}G`;
-        }
-        const appVramPct = (appVram / totalVramCap) * 100;
-        const otherVramPct = (otherVram / totalVramCap) * 100;
-        vramAppBar.style.width = `${appVramPct}%`;
-        vramOtherBar.style.width = `${otherVramPct}%`;
     }
 
     updateSystemStatus();
-    updateResourceUsage();
-    setInterval(updateResourceUsage, 2000);
+    connectTelemetryWS();
 
     // ─── Notification Bell & Panel ─────────────────
     const notifBell = document.getElementById('notification-bell');
@@ -840,30 +805,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const detectionColors = ['#4b8eff', '#4edea3', '#ffb74d', '#c0c1ff', '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff6b81', '#a66cff'];
     let simulatedDetections = [];
 
-    function generateDetections() {
-        const count = Math.floor(Math.random() * 4) + 1; // 1-4 detections
-        const dets = [];
-        for (let i = 0; i < count; i++) {
-            const classIdx = Math.floor(Math.random() * detectionClasses.length);
-            const w = 0.08 + Math.random() * 0.2;
-            const h = 0.1 + Math.random() * 0.3;
-            dets.push({
-                label: detectionClasses[classIdx],
-                confidence: (0.55 + Math.random() * 0.44).toFixed(2),
-                color: detectionColors[classIdx],
-                x: Math.random() * (1 - w),
-                y: Math.random() * (1 - h),
-                w, h,
-                // For smooth animation
-                targetX: 0, targetY: 0, targetW: 0, targetH: 0,
-            });
-            dets[i].targetX = dets[i].x;
-            dets[i].targetY = dets[i].y;
-            dets[i].targetW = dets[i].w;
-            dets[i].targetH = dets[i].h;
-        }
-        return dets;
-    }
+    let inferenceWS = null;
+    let inferenceInterval = null;
 
     function drawDetections() {
         if (!detectionCanvas || !cameraVideo || cameraVideo.classList.contains('hidden')) return;
@@ -930,24 +873,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         detectionCanvas.classList.remove('hidden');
-        simulatedDetections = generateDetections();
+        simulatedDetections = [];
 
-        // Periodically refresh detections to simulate real-time inference
-        window._detectionInterval = setInterval(() => {
-            const newDets = generateDetections();
-            // Match existing detections to new ones and update targets
-            simulatedDetections = newDets.map((nd, i) => {
-                const old = simulatedDetections[i] || nd;
-                return {
-                    ...nd,
-                    x: old.x, y: old.y, w: old.w, h: old.h,
-                    targetX: nd.x, targetY: nd.y, targetW: nd.w, targetH: nd.h,
-                };
-            });
-        }, 2000);
+        try {
+            inferenceWS = new WebSocket('ws://localhost:8000/ws/inference');
+            inferenceWS.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.detections) {
+                    const newDets = data.detections.map(nd => {
+                        const hash = nd.label.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
+                        const classIdx = Math.abs(hash) % detectionColors.length;
+                        return {
+                            ...nd,
+                            color: detectionColors[classIdx] || '#4b8eff',
+                            targetX: nd.x, targetY: nd.y, targetW: nd.w, targetH: nd.h,
+                        };
+                    });
+                    
+                    if (simulatedDetections.length === 0) {
+                        simulatedDetections = newDets.map(nd => ({...nd, x: nd.targetX, y: nd.targetY, w: nd.targetW, h: nd.targetH}));
+                    } else {
+                        simulatedDetections = newDets.map((nd, i) => {
+                            const old = simulatedDetections[i] || nd;
+                            return { ...nd, x: old.x, y: old.y, w: old.w, h: old.h };
+                        });
+                    }
+                }
+            };
+        } catch(e) {
+            console.error("Inference WS Error:", e);
+        }
+
+        // Send frames at 5fps
+        inferenceInterval = setInterval(() => {
+            if (inferenceWS && inferenceWS.readyState === WebSocket.OPEN && cameraVideo && !cameraVideo.classList.contains('hidden')) {
+                const canvas = document.createElement('canvas');
+                // Downscale for performance
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                inferenceWS.send(dataUrl);
+            }
+        }, 200);
 
         drawDetections();
-        termLog('DETECT: Real-time inference started. Drawing bounding boxes.', 'success');
+        termLog('DETECT: Real-time backend inference started.', 'success');
     }
 
     function stopDetectionOverlay() {
@@ -955,15 +927,20 @@ document.addEventListener('DOMContentLoaded', () => {
             cancelAnimationFrame(detectionAnimationId);
             detectionAnimationId = null;
         }
-        if (window._detectionInterval) {
-            clearInterval(window._detectionInterval);
-            window._detectionInterval = null;
+        if (inferenceInterval) {
+            clearInterval(inferenceInterval);
+            inferenceInterval = null;
+        }
+        if (inferenceWS) {
+            inferenceWS.close();
+            inferenceWS = null;
         }
         if (detectionCanvas) {
             detectionCanvas.classList.add('hidden');
             const ctx = detectionCanvas.getContext('2d');
             ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
         }
+        simulatedDetections = [];
     }
 
     // ─── localStorage Persistence (Models & Printers) ──
