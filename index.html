@@ -221,6 +221,9 @@
                         <span class="material-symbols-outlined text-[20px]">forum</span>
                         AI Chat
                     </a>
+                    <div id="sidebar-chat-history" class="hidden flex-col gap-1 px-4 ml-6 mt-1 mb-2 border-l border-outline-variant/30 max-h-[150px] overflow-y-auto no-scrollbar">
+                        <!-- Chat history items will be appended here -->
+                    </div>
                 </div>
                 <!-- Footer -->
                 <div class="mt-auto pt-4 border-t border-outline-variant/30 flex justify-between items-center px-2">
@@ -944,15 +947,15 @@
                         <div class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-primary"
                                 style="font-variation-settings: 'FILL' 1;">psychology</span>
-                            <h2 class="font-label-mono text-label-mono text-on-surface">AEGIS_AI_ORACLE v2.4.1</h2>
+                            <select id="ollama-model-select" class="bg-surface-container border border-outline-variant/30 text-on-surface text-sm rounded px-2 py-1 outline-none focus:border-primary/50 font-label-mono">
+                                <option value="" disabled selected>Loading local models...</option>
+                            </select>
                             <span
                                 class="px-2 py-0.5 rounded text-[10px] font-label-mono bg-secondary/10 text-secondary border border-secondary/20 uppercase tracking-widest">Online</span>
                         </div>
                         <div class="flex items-center gap-3 text-outline">
-                            <button class="hover:text-primary transition-colors"><span
-                                    class="material-symbols-outlined text-sm">download</span></button>
-                            <button class="hover:text-primary transition-colors"><span
-                                    class="material-symbols-outlined text-sm">more_vert</span></button>
+                            <button id="btn-new-chat" class="hover:text-primary transition-colors flex items-center justify-center bg-primary/10 rounded-full w-8 h-8"><span
+                                    class="material-symbols-outlined text-sm">add</span></button>
                         </div>
                     </div>
                     <!-- Chat Log -->
@@ -966,68 +969,15 @@
                                 class="mt-2 text-primary terminal-text border-l-2 border-primary/50 pl-4 py-1 bg-primary/5 rounded-r">
                                 Aegis Oracle ready for queries. Monitor actively scanning 144 zones.</div>
                         </div>
-                        <!-- User Message -->
-                        <div class="flex justify-end">
-                            <div
-                                class="bg-surface-container-highest p-5 rounded-lg rounded-tr-none max-w-[70%] border border-outline-variant/50 shadow-lg">
-                                <p class="text-on-surface">Analyze the anomaly detected in Server Room B at 10:42. Is
-                                    there a physical security breach?</p>
-                            </div>
-                        </div>
-                        <!-- AI Response -->
-                        <div class="flex justify-start">
-                            <div
-                                class="bg-surface-container-low p-5 rounded-lg rounded-tl-none max-w-[85%] border border-primary/20 shadow-[0_0_30px_rgba(173,198,255,0.05)]">
-                                <div class="flex items-center gap-2 mb-4 text-primary pb-3 border-b border-primary/10">
-                                    <span class="material-symbols-outlined text-sm"
-                                        style="font-variation-settings: 'FILL' 1;">terminal</span>
-                                    <span class="tracking-widest uppercase text-xs">Processing Query [REQ-992A]</span>
-                                </div>
-                                <div class="text-on-surface-variant space-y-3">
-                                    <p><span class="text-secondary font-bold">[SYS.LOG]</span> Correlating EVT-8892 with
-                                        access control logs...</p>
-                                    <p><span class="text-secondary font-bold">[SYS.LOG]</span> Analyzing thermal
-                                        signatures and facial biometrics...</p>
-                                    <div class="py-2"></div>
-                                    <p class="text-on-surface terminal-text font-bold">ANALYSIS COMPLETE (0.42s):</p>
-                                    <ul class="list-disc list-inside pl-2 space-y-2 text-on-surface">
-                                        <li>Subject lacks valid RFID badge for Zone 2 (Server Room B).</li>
-                                        <li>Facial recognition confidence &lt; 30% against employee database.</li>
-                                        <li>Subject is carrying an unidentified metallic object (prob. &gt; 85% tool
-                                            casing).</li>
-                                    </ul>
-                                    <div class="py-2"></div>
-                                    <div
-                                        class="bg-error-container/10 border border-error/30 p-4 rounded text-error flex items-start gap-4 mt-2">
-                                        <span class="material-symbols-outlined mt-1">warning</span>
-                                        <div>
-                                            <span class="font-bold tracking-tight text-base">STATUS: HIGH PROBABILITY
-                                                PHYSICAL BREACH.</span><br>
-                                            <p class="mt-1 opacity-90">Recommend immediate dispatch of Security Team
-                                                Alpha. Auto-lock protocols for adjacent sectors have been engaged.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     <!-- Input Area -->
                     <div class="p-6 bg-surface-container-low/95 border-t border-outline-variant/20 shrink-0">
-                        <div class="mb-4 flex gap-2">
-                            <div
-                                class="flex items-center gap-2 bg-surface-container border border-primary/30 px-3 py-1.5 rounded-md text-xs font-label-mono text-primary">
-                                <span class="material-symbols-outlined text-[14px]">attachment</span>
-                                <span>EVT-8892 [Server Room B]</span>
-                                <button class="ml-2 hover:text-error transition-colors"><span
-                                        class="material-symbols-outlined text-[14px]">close</span></button>
-                            </div>
-                        </div>
                         <div class="relative flex items-end gap-4">
                             <div
                                 class="flex-1 bg-surface-container-lowest/50 border border-outline-variant/50 rounded-xl focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all overflow-hidden flex">
                                 <div class="p-3.5 text-outline flex items-end"><span
                                         class="material-symbols-outlined text-[20px]">add</span></div>
-                                <textarea
+                                <textarea id="chat-input"
                                     class="w-full bg-transparent border-none py-3.5 pr-3 text-sm text-on-surface font-label-mono focus:ring-0 outline-none resize-none placeholder:text-outline-variant"
                                     placeholder="Enter command or query (e.g., /lockdown zone_2)" rows="1"
                                     style="min-height: 52px; max-height: 150px;"></textarea>
@@ -1035,7 +985,7 @@
                                         class="p-2 text-outline-variant hover:text-primary transition-colors rounded-full"><span
                                             class="material-symbols-outlined text-[18px]">mic</span></button></div>
                             </div>
-                            <button
+                            <button id="chat-send-btn"
                                 class="h-[52px] w-[52px] bg-primary text-on-primary-fixed rounded-xl hover:brightness-110 active:scale-95 transition-all duration-200 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
                                 <span class="material-symbols-outlined text-[24px]">send</span>
                             </button>
@@ -1074,110 +1024,67 @@
                             </nav>
                             <!-- Content -->
                             <div class="col-span-9 space-y-8">
-                                <!-- AI Detection Features -->
+                                <!-- General Configurations -->
                                 <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                                        <span class="material-symbols-outlined text-primary text-3xl">smart_toy</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">AI
-                                            Detection Features</h2>
+                                        <span class="material-symbols-outlined text-primary text-3xl">tune</span>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">General Configurations</h2>
                                     </div>
                                     <div class="space-y-6">
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Language Display</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Select the interface language.</p>
+                                            </div>
+                                            <select id="setting-language" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="en" selected>English</option>
+                                                <option value="zh-TW">繁體中文</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Facial Recognition</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Enable real-time identity mapping against database.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Dark Theme</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Toggle dark mode interface.</p>
                                             </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none"><input
-                                                    checked
-                                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    id="facial-rec" type="checkbox"><label
-                                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                    for="facial-rec"></label></div>
+                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="setting-theme-toggle" type="checkbox">
+                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="setting-theme-toggle"></label>
+                                            </div>
                                         </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Record Retention Days</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">How long to keep history logs and media.</p>
+                                            </div>
+                                            <select id="setting-retention-days" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="7">7 Days</option>
+                                                <option value="30" selected>30 Days</option>
+                                                <option value="0">Permanent</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Default Save Path</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Directory path for saving media.</p>
+                                            </div>
+                                            <input id="setting-save-path" type="text" placeholder="/var/opt/aegis/media" value="./data/media" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-1/3">
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Auto-Screenshot on Anomaly</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Capture 4K frames immediately when threat level &gt; 75%.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Auto-Connect on Startup</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Automatically load camera feeds and AI models on boot.</p>
                                             </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none"><input
-                                                    checked
-                                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    id="auto-screen" type="checkbox"><label
-                                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                    for="auto-screen"></label></div>
-                                        </div>
-                                    </div>
-                                </section>
-                                <!-- System Telemetry -->
-                                <section class="glass-panel rounded-xl p-8">
-                                    <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                                        <span class="material-symbols-outlined text-primary text-3xl">speed</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            System Telemetry</h2>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-6">
-                                        <div
-                                            class="bg-surface-container-highest p-6 rounded-lg border border-outline-variant/20 flex flex-col justify-center items-center relative overflow-hidden">
-                                            <div class="absolute top-4 left-4"><span
-                                                    class="font-label-mono text-label-mono text-on-surface-variant uppercase">VRAM
-                                                    Allocation</span></div>
-                                            <div
-                                                class="w-32 h-32 rounded-full border-8 border-surface-container relative flex items-center justify-center mt-6">
-                                                <svg class="absolute inset-0 w-full h-full transform -rotate-90"
-                                                    viewBox="0 0 100 100">
-                                                    <circle cx="50" cy="50" fill="none" r="46" stroke="#2d3449"
-                                                        stroke-width="8"></circle>
-                                                    <circle class="transition-all duration-1000" cx="50" cy="50"
-                                                        fill="none" r="46" stroke="#adc6ff" stroke-dasharray="289"
-                                                        stroke-dashoffset="72" stroke-width="8"></circle>
-                                                </svg>
-                                                <div class="text-center z-10">
-                                                    <div class="font-headline-lg text-headline-lg text-on-surface">75%
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="mt-4 font-label-mono text-label-mono text-primary">18.2 GB / 24
-                                                GB</div>
-                                        </div>
-                                        <div
-                                            class="bg-surface-container-highest p-6 rounded-lg border border-outline-variant/20 flex flex-col justify-center items-center relative overflow-hidden">
-                                            <div class="absolute top-4 left-4"><span
-                                                    class="font-label-mono text-label-mono text-on-surface-variant uppercase">Core
-                                                    Processing</span></div>
-                                            <div class="w-full mt-10 space-y-4">
-                                                <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                        class="text-on-surface">Load</span><span
-                                                        class="text-secondary">42%</span></div>
-                                                <div
-                                                    class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                                                    <div class="bg-secondary h-full rounded-full w-[42%]"></div>
-                                                </div>
-                                                <div class="flex justify-between font-label-mono text-label-mono pt-4">
-                                                    <span class="text-on-surface">Temp</span><span
-                                                        class="text-primary">68°C</span>
-                                                </div>
-                                                <div
-                                                    class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
-                                                    <div class="bg-primary h-full rounded-full w-[68%]"></div>
-                                                </div>
+                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="setting-auto-connect" type="checkbox">
+                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="setting-auto-connect"></label>
                                             </div>
                                         </div>
                                     </div>
                                 </section>
                                 <!-- Action Buttons -->
                                 <div class="flex justify-end gap-4 pt-4 border-t border-outline-variant/20">
-                                    <button
-                                        class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert
-                                        Changes</button>
-                                    <button
-                                        class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply
-                                        Settings</button>
+                                    <button class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
+                                    <button id="btn-apply-general" class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply Settings</button>
                                 </div>
                             </div>
                         </div>
@@ -1217,52 +1124,59 @@
                                 <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
                                         <span class="material-symbols-outlined text-primary text-3xl">videocam</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Camera Input Settings</h2>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Camera Input Settings</h2>
                                     </div>
                                     <div class="space-y-6">
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Select Camera Source</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Choose the active hardware input for this sector.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Select Camera Source</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Choose the active hardware input type.</p>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
-                                                <option>CAM-01 (Sector 4)</option>
-                                                <option>CAM-02 (Lobby)</option>
-                                                <option>CAM-03 (Perimeter)</option>
+                                            <select id="cam-input-type" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="usb" selected>USB Webcam</option>
+                                                <option value="rtsp">RTSP Stream</option>
+                                                <option value="onvif">ONVIF</option>
                                             </select>
                                         </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Flip Horizontally</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Mirror the video feed for rear-facing installations.</p>
-                                            </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none"><input
-                                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    id="flip-h" type="checkbox"><label
-                                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                    for="flip-h"></label></div>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div id="cam-rtsp-container" class="hidden flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Stream Resolution</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Adjust output quality based on bandwidth availability.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">RTSP URL</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Enter the network stream address.</p>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
-                                                <option>4K (Ultra HD)</option>
-                                                <option selected>1080p (Full HD)</option>
-                                                <option>720p (HD)</option>
+                                            <input id="cam-rtsp-url" type="text" placeholder="rtsp://admin:admin@192.168.1.100/stream" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-1/2">
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Horizontal Flip</h3>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input id="cam-flip" type="checkbox" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="cam-flip"></label>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Vertical Mirror</h3>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input id="cam-mirror" type="checkbox" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="cam-mirror"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Rotation</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Adjust camera mounting angle.</p>
+                                            </div>
+                                            <select id="cam-rotation" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="0" selected>0°</option>
+                                                <option value="90">90°</option>
+                                                <option value="180">180°</option>
+                                                <option value="270">270°</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1271,57 +1185,51 @@
                                 <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
                                         <span class="material-symbols-outlined text-primary text-3xl">tune</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Video Stream Parameters</h2>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Video Stream Parameters</h2>
                                     </div>
                                     <div class="grid grid-cols-1 gap-6">
                                         <div class="space-y-6">
                                             <div class="space-y-2">
-                                                <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                        class="text-on-surface">Brightness</span><span
-                                                        class="text-primary">50%</span></div><input
-                                                    class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                    type="range" value="50">
+                                                <div class="flex justify-between font-label-mono text-label-mono">
+                                                    <span class="text-on-surface">Brightness</span><span id="cam-brightness-val" class="text-primary">50%</span>
+                                                </div>
+                                                <input id="cam-brightness" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="50" oninput="document.getElementById('cam-brightness-val').innerText = this.value + '%'">
                                             </div>
                                             <div class="space-y-2">
-                                                <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                        class="text-on-surface">Contrast</span><span
-                                                        class="text-primary">65%</span></div><input
-                                                    class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                    type="range" value="65">
+                                                <div class="flex justify-between font-label-mono text-label-mono">
+                                                    <span class="text-on-surface">Contrast</span><span id="cam-contrast-val" class="text-primary">65%</span>
+                                                </div>
+                                                <input id="cam-contrast" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="65" oninput="document.getElementById('cam-contrast-val').innerText = this.value + '%'">
                                             </div>
                                             <div class="space-y-2">
-                                                <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                        class="text-on-surface">Saturation</span><span
-                                                        class="text-primary">40%</span></div><input
-                                                    class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                    type="range" value="40">
+                                                <div class="flex justify-between font-label-mono text-label-mono">
+                                                    <span class="text-on-surface">Saturation</span><span id="cam-saturation-val" class="text-primary">40%</span>
+                                                </div>
+                                                <input id="cam-saturation" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="40" oninput="document.getElementById('cam-saturation-val').innerText = this.value + '%'">
                                             </div>
                                         </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors mt-4">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors mt-4">
                                             <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Night Vision Mode</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Enable IR filter for low-light environments.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Night Vision Mode (IR)</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Enable IR filter for low-light environments.</p>
                                             </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none"><input
-                                                    checked
-                                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    id="night-vision" type="checkbox"><label
-                                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                    for="night-vision"></label></div>
+                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                <input id="cam-night-vision" type="checkbox" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer">
+                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="cam-night-vision"></label>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors mt-2">
+                                            <div>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Region of Interest (ROI)</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Define specific areas for AI detection.</p>
+                                            </div>
+                                            <button id="cam-set-roi" class="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-mono text-sm font-bold shadow-lg hover:brightness-110 transition-colors">Set ROI</button>
                                         </div>
                                     </div>
                                 </section>
                                 <div class="flex justify-end gap-4 pt-4 border-t border-outline-variant/20">
-                                    <button
-                                        class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert
-                                        Changes</button>
-                                    <button
-                                        class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply
-                                        Settings</button>
+                                    <button class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
+                                    <button id="btn-apply-camera" class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply Settings</button>
                                 </div>
                             </div>
                         </div>
@@ -1360,104 +1268,65 @@
                                 <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
                                         <span class="material-symbols-outlined text-primary text-3xl">psychology</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Primary Model Config</h2>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Primary Model Config</h2>
                                     </div>
                                     <div class="space-y-6">
                                         <div class="space-y-2">
-                                            <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                    class="text-on-surface">Confidence Threshold</span><span
-                                                    class="text-primary">75%</span></div><input
-                                                class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                type="range" value="75">
+                                            <div class="flex justify-between font-label-mono text-label-mono">
+                                                <span class="text-on-surface">Confidence Threshold</span><span id="model-conf-val" class="text-primary">75%</span>
+                                            </div>
+                                            <input id="model-conf-thresh" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="75" oninput="document.getElementById('model-conf-val').innerText = this.value + '%'">
                                         </div>
                                         <div class="space-y-2">
-                                            <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                    class="text-on-surface">NMS Threshold</span><span
-                                                    class="text-primary">45%</span></div><input
-                                                class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                type="range" value="45">
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Inference Engine</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Select the backend runtime for model execution.</p>
+                                            <div class="flex justify-between font-label-mono text-label-mono">
+                                                <span class="text-on-surface">NMS Threshold</span><span id="model-nms-val" class="text-primary">45%</span>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
-                                                <option selected>TensorRT</option>
-                                                <option>ONNX</option>
-                                                <option>OpenVINO</option>
+                                            <input id="model-nms-thresh" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="45" oninput="document.getElementById('model-nms-val').innerText = this.value + '%'">
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Inference Engine</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Select the backend runtime for model execution.</p>
+                                            </div>
+                                            <select id="model-inference-engine" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="cpu">CPU</option>
+                                                <option value="cuda" selected>CUDA</option>
+                                                <option value="tensorrt">TensorRT</option>
+                                                <option value="openvino">OpenVINO</option>
                                             </select>
                                         </div>
                                     </div>
                                 </section>
                                 <section class="glass-panel rounded-xl p-8">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                                        <span
-                                            class="material-symbols-outlined text-primary text-3xl">developer_board</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Hardware Acceleration</h2>
+                                        <span class="material-symbols-outlined text-primary text-3xl">developer_board</span>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Hardware & Performance</h2>
                                     </div>
                                     <div class="space-y-6">
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Batch Size</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Number of frames processed simultaneously.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Batch Size</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Number of frames processed simultaneously.</p>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
-                                                <option selected>1</option>
-                                                <option>2</option>
-                                                <option>4</option>
-                                                <option>8</option>
+                                            <select id="model-batch-size" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                                <option value="1" selected>1</option>
+                                                <option value="2">2</option>
+                                                <option value="4">4</option>
+                                                <option value="8">8</option>
                                             </select>
                                         </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
                                             <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Precision Mode</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Quantization level for inference speed vs accuracy.</p>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Max FPS Limit</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Throttle processing to save resources (0 for unlimited).</p>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
-                                                <option>FP32</option>
-                                                <option selected>FP16</option>
-                                                <option>INT8</option>
-                                            </select>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">GPU
-                                                    Memory Growth</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">
-                                                    Dynamically allocate VRAM as needed.</p>
-                                            </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none"><input
-                                                    checked
-                                                    class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                    id="gpu-growth" type="checkbox"><label
-                                                    class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                    for="gpu-growth"></label></div>
+                                            <input id="model-max-fps" type="number" min="0" max="120" value="30" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-24">
                                         </div>
                                     </div>
                                 </section>
                                 <div class="flex justify-end gap-4 pt-4 border-t border-outline-variant/20">
-                                    <button
-                                        class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert
-                                        Changes</button>
-                                    <button
-                                        class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply
-                                        Settings</button>
+                                    <button class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
+                                    <button id="btn-apply-model" class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply Settings</button>
                                 </div>
                             </div>
                         </div>
@@ -1496,88 +1365,31 @@
                                 <!-- Alert Notification Rules -->
                                 <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                                        <span
-                                            class="material-symbols-outlined text-primary text-3xl">notifications_active</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Alert Notification Rules</h2>
+                                        <span class="material-symbols-outlined text-primary text-3xl">notifications_active</span>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Target Objects</h2>
                                     </div>
-                                    <div class="space-y-6">
-                                        <div class="space-y-4">
-                                            <div
-                                                class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <div class="flex items-center gap-3"><span
-                                                        class="material-symbols-outlined text-on-surface-variant">mail</span>
-                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface">
-                                                        Email Notifications</h3>
-                                                </div>
-                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                    <input checked
-                                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                        id="notify-email" type="checkbox"><label
-                                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                        for="notify-email"></label>
-                                                </div>
+                                    <div class="space-y-4">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-person" type="checkbox" checked>
+                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-person">Person</label>
                                             </div>
-                                            <div
-                                                class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <div class="flex items-center gap-3"><span
-                                                        class="material-symbols-outlined text-on-surface-variant">sms</span>
-                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface">SMS
-                                                        Alerts</h3>
-                                                </div>
-                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                    <input
-                                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                        id="notify-sms" type="checkbox"><label
-                                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container-highest cursor-pointer"
-                                                        for="notify-sms"></label>
-                                                </div>
+                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-car" type="checkbox" checked>
+                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-car">Car</label>
                                             </div>
-                                            <div
-                                                class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <div class="flex items-center gap-3"><span
-                                                        class="material-symbols-outlined text-on-surface-variant">desktop_windows</span>
-                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface">
-                                                        Desktop Push</h3>
-                                                </div>
-                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                    <input checked
-                                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                        id="notify-push" type="checkbox"><label
-                                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                        for="notify-push"></label>
-                                                </div>
+                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-truck" type="checkbox">
+                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-truck">Truck</label>
                                             </div>
-                                            <div
-                                                class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <div class="flex items-center gap-3"><span
-                                                        class="material-symbols-outlined text-on-surface-variant">terminal</span>
-                                                    <h3 class="font-body-md text-body-md font-bold text-on-surface">
-                                                        System Log</h3>
-                                                </div>
-                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                    <input checked
-                                                        class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                                                        id="notify-log" type="checkbox"><label
-                                                        class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer"
-                                                        for="notify-log"></label>
-                                                </div>
+                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-animal" type="checkbox">
+                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-animal">Animal</label>
                                             </div>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between p-4 bg-surface-container-highest rounded-lg border border-outline-variant/20 mt-6 hover:border-primary/30 transition-colors">
-                                            <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">
-                                                    Alert Frequency</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">How
-                                                    often to receive non-critical updates.</p>
+                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors col-span-2">
+                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-unrecognized" type="checkbox">
+                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-unrecognized">Unrecognized Object (Anomaly)</label>
                                             </div>
-                                            <select
-                                                class="bg-surface-container-low text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none hover:border-primary/50 transition-colors">
-                                                <option selected>Immediate</option>
-                                                <option>Hourly Digest</option>
-                                                <option>Daily Summary</option>
-                                            </select>
                                         </div>
                                     </div>
                                 </section>
@@ -1585,42 +1397,49 @@
                                 <section class="glass-panel rounded-xl p-8">
                                     <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
                                         <span class="material-symbols-outlined text-primary text-3xl">warning</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">
-                                            Threat Level Triggers</h2>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Threat Triggers & Actions</h2>
                                     </div>
-                                    <div class="space-y-8">
+                                    <div class="space-y-6">
                                         <div class="space-y-2">
-                                            <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                    class="text-on-surface">Critical Threat Threshold</span><span
-                                                    class="text-primary">80%</span></div><input
-                                                class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                type="range" value="80">
+                                            <div class="flex justify-between font-label-mono text-label-mono">
+                                                <span class="text-on-surface">Critical Threat Threshold</span><span id="alert-threat-val" class="text-primary">80%</span>
+                                            </div>
+                                            <input id="alert-threat-thresh" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="80" oninput="document.getElementById('alert-threat-val').innerText = this.value + '%'">
                                         </div>
-                                        <div class="space-y-2">
-                                            <div class="flex justify-between font-label-mono text-label-mono"><span
-                                                    class="text-on-surface">Warning Threshold</span><span
-                                                    class="text-primary">50%</span></div><input
-                                                class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary"
-                                                type="range" value="50">
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Auto-Screenshot</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Capture frame when threshold is exceeded.</p>
+                                            </div>
+                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="alert-auto-screen" type="checkbox">
+                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="alert-auto-screen"></label>
+                                            </div>
                                         </div>
-                                        <div
-                                            class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <input
-                                                class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary"
-                                                id="auto-lock" type="checkbox">
-                                            <label class="font-body-md text-on-surface cursor-pointer"
-                                                for="auto-lock">Auto-lock Sector on Critical Alert</label>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div>
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Auto-Record</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Start video recording on trigger.</p>
+                                            </div>
+                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="alert-auto-record" type="checkbox">
+                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="alert-auto-record"></label>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Cooldown Period</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Seconds before a new alert can be triggered.</p>
+                                            </div>
+                                            <input id="alert-cooldown" type="number" min="0" max="3600" value="60" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-24">
                                         </div>
                                     </div>
                                 </section>
                                 <div class="flex justify-end gap-4 pt-4 border-t border-outline-variant/20">
-                                    <button
-                                        class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert
-                                        Changes</button>
-                                    <button
-                                        class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply
-                                        Settings</button>
+                                    <button class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
+                                    <button id="btn-apply-alert" class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply Settings</button>
                                 </div>
+
                             </div>
                         </div>
                     </div>

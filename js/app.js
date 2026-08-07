@@ -818,7 +818,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctx = detectionCanvas.getContext('2d');
         ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
 
+        // Fetch active settings filter values
+        const minConf = parseInt(document.getElementById('model-conf-thresh')?.value || '75', 10);
+        const allowPerson = document.getElementById('alert-target-person')?.checked ?? true;
+        const allowCar = document.getElementById('alert-target-car')?.checked ?? true;
+        const allowTruck = document.getElementById('alert-target-truck')?.checked ?? true;
+        const allowAnimal = document.getElementById('alert-target-animal')?.checked ?? true;
+        const allowUnrecognized = document.getElementById('alert-target-unrecognized')?.checked ?? true;
+
         simulatedDetections.forEach(det => {
+            // Filter 1: Confidence threshold filter
+            const confVal = parseInt(det.confidence.replace('%', ''), 10) || 100;
+            if (confVal < minConf) return;
+
+            // Filter 2: Target Object Class filter
+            const labelLower = det.label.toLowerCase();
+            if (labelLower.includes('person') && !allowPerson) return;
+            if (labelLower.includes('car') && !allowCar) return;
+            if (labelLower.includes('truck') && !allowTruck) return;
+            if (labelLower.includes('animal') && !allowAnimal) return;
+            if (labelLower.includes('unrecognized') && !allowUnrecognized) return;
+
             // Smoothly interpolate positions
             det.x += (det.targetX - det.x) * 0.05;
             det.y += (det.targetY - det.y) * 0.05;
@@ -2213,5 +2233,262 @@ window.addEventListener('spa:view-loaded', (e) => {
         if (typeof window.initRecordDetailView === 'function') {
             window.initRecordDetailView();
         }
+    }
+});
+
+// --- Settings Live Interactivity Logic ---
+window.initSettingsUI = () => {
+    const safeGet = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        return el.type === 'checkbox' ? el.checked : el.value;
+    };
+
+    const safeSet = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+            el.checked = value === true || value === 'true';
+        } else {
+            el.value = value;
+            el.dispatchEvent(new Event('input'));
+        }
+    };
+
+    // ── Real-time Visual Updates ─────────────────────
+    const applyCameraVisuals = () => {
+        const cameraVideo = document.getElementById('camera-video');
+        const detectionCanvas = document.getElementById('detection-canvas');
+
+        const flipH = safeGet('cam-flip');
+        const mirrorV = safeGet('cam-mirror');
+        const rotation = safeGet('cam-rotation') || '0';
+        const brightness = safeGet('cam-brightness') || '50';
+        const contrast = safeGet('cam-contrast') || '65';
+        const saturation = safeGet('cam-saturation') || '40';
+        const nightVision = safeGet('cam-night-vision');
+
+        const scaleX = flipH ? -1 : 1;
+        const scaleY = mirrorV ? -1 : 1;
+        const transformStr = `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`;
+
+        let filterStr = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
+        if (nightVision) {
+            filterStr = `grayscale(100%) sepia(100%) hue-rotate(90deg) brightness(1.2) contrast(1.4)`;
+        }
+
+        [cameraVideo, detectionCanvas].forEach(el => {
+            if (el) {
+                el.style.transform = transformStr;
+                el.style.filter = filterStr;
+                el.style.transition = 'transform 0.3s ease, filter 0.3s ease';
+            }
+        });
+    };
+
+    const applyTheme = (isDark) => {
+        if (isDark) {
+            document.body.classList.remove('light-mode');
+        } else {
+            document.body.classList.add('light-mode');
+        }
+    };
+
+    // Theme toggle change listener
+    const themeToggle = document.getElementById('setting-theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('change', (e) => {
+            applyTheme(e.target.checked);
+        });
+    }
+
+    // Camera RTSP container toggle
+    const camInputType = document.getElementById('cam-input-type');
+    const camRtspContainer = document.getElementById('cam-rtsp-container');
+    if (camInputType && camRtspContainer) {
+        camInputType.addEventListener('change', (e) => {
+            if (e.target.value === 'rtsp') {
+                camRtspContainer.classList.remove('hidden');
+                camRtspContainer.classList.add('flex');
+            } else {
+                camRtspContainer.classList.add('hidden');
+                camRtspContainer.classList.remove('flex');
+            }
+        });
+    }
+
+    // Real-time camera adjustment listeners
+    ['cam-flip', 'cam-mirror', 'cam-rotation', 'cam-brightness', 'cam-contrast', 'cam-saturation', 'cam-night-vision'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', applyCameraVisuals);
+            el.addEventListener('change', applyCameraVisuals);
+        }
+    });
+
+    // ROI overlay setup
+    const setRoiBtn = document.getElementById('cam-set-roi');
+    if (setRoiBtn) {
+        setRoiBtn.addEventListener('click', () => {
+            const videoContainer = document.getElementById('camera-video')?.parentElement;
+            if (!videoContainer) return;
+
+            let roiOverlay = document.getElementById('roi-overlay-box');
+            if (roiOverlay) {
+                roiOverlay.remove();
+                if (window.termLog) window.termLog("Region of Interest (ROI) zone disabled.", "warning");
+            } else {
+                roiOverlay = document.createElement('div');
+                roiOverlay.id = 'roi-overlay-box';
+                roiOverlay.className = "absolute border-2 border-dashed border-primary bg-primary/10 flex items-start p-2 pointer-events-none z-20 rounded-lg animate-pulse";
+                roiOverlay.style.cssText = "top: 20%; left: 20%; width: 60%; height: 60%;";
+                roiOverlay.innerHTML = `<span class="bg-primary text-on-primary font-label-mono text-xs px-2 py-1 rounded shadow-lg flex items-center gap-1"><span class="material-symbols-outlined text-sm">crop_free</span> ROI Active Detection Zone</span>`;
+                videoContainer.appendChild(roiOverlay);
+                if (window.termLog) window.termLog("Region of Interest (ROI) zone activated.", "success");
+            }
+        });
+    }
+
+    // Load Settings
+    const loadSettings = () => {
+        try {
+            const genConfig = JSON.parse(localStorage.getItem('aegis_settings_general'));
+            if (genConfig) {
+                safeSet('setting-language', genConfig.language);
+                safeSet('setting-theme-toggle', genConfig.themeDark);
+                applyTheme(genConfig.themeDark !== false);
+                safeSet('setting-retention-days', genConfig.retentionDays);
+                safeSet('setting-save-path', genConfig.savePath);
+                safeSet('setting-auto-connect', genConfig.autoConnect);
+
+                if (genConfig.autoConnect) {
+                    const startCamBtn = document.getElementById('start-camera-btn');
+                    if (startCamBtn && typeof startCamera === 'function') {
+                        setTimeout(() => startCamera(), 500);
+                    }
+                }
+            }
+
+            const camConfig = JSON.parse(localStorage.getItem('aegis_settings_camera'));
+            if (camConfig) {
+                safeSet('cam-input-type', camConfig.inputType);
+                if (camConfig.inputType === 'rtsp' && camRtspContainer) {
+                    camRtspContainer.classList.remove('hidden');
+                    camRtspContainer.classList.add('flex');
+                }
+                safeSet('cam-rtsp-url', camConfig.rtspUrl);
+                safeSet('cam-flip', camConfig.flipH);
+                safeSet('cam-mirror', camConfig.mirrorV);
+                safeSet('cam-rotation', camConfig.rotation);
+                safeSet('cam-brightness', camConfig.brightness);
+                safeSet('cam-contrast', camConfig.contrast);
+                safeSet('cam-saturation', camConfig.saturation);
+                safeSet('cam-night-vision', camConfig.nightVision);
+                applyCameraVisuals();
+            }
+
+            const modelConfig = JSON.parse(localStorage.getItem('aegis_settings_model'));
+            if (modelConfig) {
+                safeSet('model-conf-thresh', modelConfig.confThresh);
+                safeSet('model-nms-thresh', modelConfig.nmsThresh);
+                safeSet('model-inference-engine', modelConfig.inferenceEngine);
+                safeSet('model-batch-size', modelConfig.batchSize);
+                safeSet('model-max-fps', modelConfig.maxFps);
+            }
+
+            const alertConfig = JSON.parse(localStorage.getItem('aegis_settings_alert'));
+            if (alertConfig) {
+                safeSet('alert-target-person', alertConfig.targetPerson);
+                safeSet('alert-target-car', alertConfig.targetCar);
+                safeSet('alert-target-truck', alertConfig.targetTruck);
+                safeSet('alert-target-animal', alertConfig.targetAnimal);
+                safeSet('alert-target-unrecognized', alertConfig.targetUnrecognized);
+                safeSet('alert-threat-thresh', alertConfig.threatThresh);
+                safeSet('alert-auto-screen', alertConfig.autoScreen);
+                safeSet('alert-auto-record', alertConfig.autoRecord);
+                safeSet('alert-cooldown', alertConfig.cooldown);
+            }
+        } catch (e) {
+            console.error("Error loading settings", e);
+        }
+    };
+
+    // Save Handlers
+    const btnApplyGeneral = document.getElementById('btn-apply-general');
+    if (btnApplyGeneral) {
+        btnApplyGeneral.addEventListener('click', () => {
+            const config = {
+                language: safeGet('setting-language'),
+                themeDark: safeGet('setting-theme-toggle'),
+                retentionDays: safeGet('setting-retention-days'),
+                savePath: safeGet('setting-save-path'),
+                autoConnect: safeGet('setting-auto-connect')
+            };
+            localStorage.setItem('aegis_settings_general', JSON.stringify(config));
+            applyTheme(config.themeDark);
+            if (window.termLog) window.termLog("General settings applied & saved successfully.", "success");
+        });
+    }
+
+    const btnApplyCamera = document.getElementById('btn-apply-camera');
+    if (btnApplyCamera) {
+        btnApplyCamera.addEventListener('click', () => {
+            const config = {
+                inputType: safeGet('cam-input-type'),
+                rtspUrl: safeGet('cam-rtsp-url'),
+                flipH: safeGet('cam-flip'),
+                mirrorV: safeGet('cam-mirror'),
+                rotation: safeGet('cam-rotation'),
+                brightness: safeGet('cam-brightness'),
+                contrast: safeGet('cam-contrast'),
+                saturation: safeGet('cam-saturation'),
+                nightVision: safeGet('cam-night-vision')
+            };
+            localStorage.setItem('aegis_settings_camera', JSON.stringify(config));
+            applyCameraVisuals();
+            if (window.termLog) window.termLog("Camera video transformations applied.", "success");
+        });
+    }
+
+    const btnApplyModel = document.getElementById('btn-apply-model');
+    if (btnApplyModel) {
+        btnApplyModel.addEventListener('click', () => {
+            const config = {
+                confThresh: safeGet('model-conf-thresh'),
+                nmsThresh: safeGet('model-nms-thresh'),
+                inferenceEngine: safeGet('model-inference-engine'),
+                batchSize: safeGet('model-batch-size'),
+                maxFps: safeGet('model-max-fps')
+            };
+            localStorage.setItem('aegis_settings_model', JSON.stringify(config));
+            if (window.termLog) window.termLog(`Model parameters updated. Engine: ${config.inferenceEngine.toUpperCase()}, Confidence: ${config.confThresh}%`, "success");
+        });
+    }
+
+    const btnApplyAlert = document.getElementById('btn-apply-alert');
+    if (btnApplyAlert) {
+        btnApplyAlert.addEventListener('click', () => {
+            const config = {
+                targetPerson: safeGet('alert-target-person'),
+                targetCar: safeGet('alert-target-car'),
+                targetTruck: safeGet('alert-target-truck'),
+                targetAnimal: safeGet('alert-target-animal'),
+                targetUnrecognized: safeGet('alert-target-unrecognized'),
+                threatThresh: safeGet('alert-threat-thresh'),
+                autoScreen: safeGet('alert-auto-screen'),
+                autoRecord: safeGet('alert-auto-record'),
+                cooldown: safeGet('alert-cooldown')
+            };
+            localStorage.setItem('aegis_settings_alert', JSON.stringify(config));
+            if (window.termLog) window.termLog("Alert detection rules updated.", "success");
+        });
+    }
+
+    loadSettings();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initSettingsUI) {
+        window.initSettingsUI();
     }
 });

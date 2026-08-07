@@ -112,20 +112,20 @@ body {
 }
 
 /* === Toggle Switch === */
-.toggle-checkbox:checked {
-    right: 0;
-    border-color: #adc6ff;
-}
-
-.toggle-checkbox:checked+.toggle-label {
-    background-color: #4b8eff;
-}
-
 .toggle-checkbox {
-    right: 0;
+    top: 0;
+    left: 1.5rem; /* OFF position: Circle on Right */
     z-index: 1;
     border-color: #414755;
-    transition: all 0.3s;
+    background-color: #ffffff;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.toggle-checkbox:checked {
+    left: 0; /* ON position: Circle on Left */
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
 .toggle-label {
@@ -133,8 +133,47 @@ body {
     height: 1.5rem;
     background-color: #2d3449;
     border-radius: 9999px;
-    transition: all 0.3s;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
+
+.toggle-checkbox:checked + .toggle-label {
+    background-color: #ffffff; /* Track is white when ON */
+    border: 1px solid #cbd5e1;
+}
+
+/* === Light Theme Overrides === */
+body.light-mode {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+body.light-mode .glass-panel {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(203, 213, 225, 0.6) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-mode #top-header,
+body.light-mode #sidebar {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(203, 213, 225, 0.8) !important;
+}
+
+body.light-mode .text-on-surface {
+    color: #0f172a !important;
+}
+
+body.light-mode .text-on-surface-variant {
+    color: #475569 !important;
+}
+
+body.light-mode .bg-surface-container,
+body.light-mode .bg-surface-container-low,
+body.light-mode .bg-surface-container-highest {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
 
 /* === Sidebar — Force absolute positioning within #app-container === */
 #sidebar {
