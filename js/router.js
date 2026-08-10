@@ -24,8 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return routeMap[file] || 'view-home';
     }
 
+    const SETTINGS_VIEWS = ['view-settings', 'view-settings-camera', 'view-settings-model', 'view-settings-alert'];
+
+    function getCurrentViewId() {
+        const visible = document.querySelector('.view-section:not(.hidden)');
+        return visible ? visible.id : 'view-home';
+    }
+
     function loadRoute(url, pushState = true) {
         const targetViewId = getViewId(url);
+        const currentViewId = getCurrentViewId();
+
+        // Unsaved changes guard: if leaving a settings page with dirty state
+        if (SETTINGS_VIEWS.includes(currentViewId) && !SETTINGS_VIEWS.includes(targetViewId) && window.aegisSettingsDirty) {
+            window._aegisPendingNavUrl = url;
+            const modal = document.getElementById('unsaved-modal');
+            if (modal) {
+                modal.classList.add('open');
+                return; // Abort navigation — modal will handle it
+            }
+        }
 
         // Hide all views
         document.querySelectorAll('.view-section').forEach(section => {
@@ -55,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const event = new CustomEvent('spa:view-loaded', { detail: { viewId: targetViewId, url } });
         window.dispatchEvent(event);
     }
+
 
     // Expose globally for programmatic navigation
     window.spaLoadRoute = loadRoute;
@@ -89,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetView = document.getElementById(targetViewId);
             if (targetView) targetView.classList.remove('hidden');
             updateActiveNav(link.href);
+
+            // Important for file:// protocol: dispatch event so PiP and other components update!
+            const event = new CustomEvent('spa:view-loaded', { detail: { viewId: targetViewId, url: link.href } });
+            window.dispatchEvent(event);
         }
     });
 

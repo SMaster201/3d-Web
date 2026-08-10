@@ -70,6 +70,46 @@ async def get_telemetry():
         "totalVramCap": round(total_vram_gb, 1)
     }
 
+from pydantic import BaseModel
+import os
+
+class SavePathRequest(BaseModel):
+    path: str
+
+@app.post("/api/settings/save-path")
+async def update_save_path(req: SavePathRequest):
+    try:
+        os.makedirs(req.path, exist_ok=True)
+        return {"status": "success", "path": req.path}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+class ModelSettingsRequest(BaseModel):
+    confThresh: float
+    nmsThresh: float
+    inferenceEngine: str
+    inferenceInterval: float = 0
+    targetObjects: list[str] = []
+
+inference_config = {
+    "conf": 0.6,
+    "iou": 0.45,
+    "device": "0" if torch.cuda.is_available() else "cpu",
+    "target_objects": []
+}
+
+@app.post("/api/settings/model")
+async def update_model_settings(req: ModelSettingsRequest):
+    try:
+        inference_config["conf"] = float(req.confThresh) / 100.0
+        inference_config["iou"] = float(req.nmsThresh) / 100.0
+        inference_config["device"] = "0" if req.inferenceEngine == "cuda" and torch.cuda.is_available() else "cpu"
+        inference_config["target_objects"] = req.targetObjects
+        print(f"Updated backend model settings: {inference_config}")
+        return {"status": "success", "config": inference_config}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry(websocket: WebSocket):
     await websocket.accept()
@@ -104,18 +144,29 @@ async def websocket_inference(websocket: WebSocket):
                 continue
 
             # Run inference
-            device = "0" if torch.cuda.is_available() else "cpu"
-            results = model(img, device=device, verbose=False)
+            results = model(
+                img, 
+                device=inference_config["device"],
+                conf=inference_config["conf"],
+                iou=inference_config["iou"],
+                verbose=False
+            )
             
             # Format detections
             detections = []
+            targets = inference_config.get("target_objects", [])
             for r in results:
                 boxes = r.boxes
                 for box in boxes:
-                    x1, y1, x2, y2 = box.xyxyn[0].tolist()  # Normalized coordinates
-                    conf = box.conf[0].item()
                     cls_id = int(box.cls[0].item())
                     name = model.names[cls_id]
+                    
+                    # Filter by target objects if specified
+                    if targets and name.lower() not in targets:
+                        continue
+                        
+                    x1, y1, x2, y2 = box.xyxyn[0].tolist()  # Normalized coordinates
+                    conf = box.conf[0].item()
                     
                     detections.append({
                         "label": name,

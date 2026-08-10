@@ -1017,8 +1017,7 @@
                                         </li>
                                         <li><a href="settings_alert.html"
                                                 class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface text-left transition-colors duration-300 font-body-md text-body-md"><span
-                                                    class="material-symbols-outlined">notifications_active</span>Alerts
-                                                &amp; Triggers</a></li>
+                                                class="material-symbols-outlined">notifications_active</span>Notifications</a></li>
                                     </ul>
                                 </div>
                             </nav>
@@ -1114,8 +1113,7 @@
                                         </li>
                                         <li><a href="settings_alert.html"
                                                 class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface text-left transition-colors duration-300 font-body-md text-body-md"><span
-                                                    class="material-symbols-outlined">notifications_active</span>Alerts
-                                                &amp; Triggers</a></li>
+                                                class="material-symbols-outlined">notifications_active</span>Notifications</a></li>
                                     </ul>
                                 </div>
                             </nav>
@@ -1259,8 +1257,7 @@
                                         </li>
                                         <li><a href="settings_alert.html"
                                                 class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface text-left transition-colors duration-300 font-body-md text-body-md"><span
-                                                    class="material-symbols-outlined">notifications_active</span>Alerts
-                                                &amp; Triggers</a></li>
+                                                class="material-symbols-outlined">notifications_active</span>Notifications</a></li>
                                     </ul>
                                 </div>
                             </nav>
@@ -1291,8 +1288,6 @@
                                             <select id="model-inference-engine" class="bg-surface-container-highest text-on-surface border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
                                                 <option value="cpu">CPU</option>
                                                 <option value="cuda" selected>CUDA</option>
-                                                <option value="tensorrt">TensorRT</option>
-                                                <option value="openvino">OpenVINO</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1321,6 +1316,30 @@
                                                 <p class="font-label-mono text-label-mono text-on-surface-variant">Throttle processing to save resources (0 for unlimited).</p>
                                             </div>
                                             <input id="model-max-fps" type="number" min="0" max="120" value="30" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-24">
+                                        </div>
+                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                            <div class="flex-1">
+                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Inference Interval</h3>
+                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Seconds between inference runs (0 for real-time).</p>
+                                            </div>
+                                            <input id="model-inference-interval" type="number" min="0" max="60" step="0.1" value="0" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-24">
+                                        </div>
+                                    </div>
+                                </section>
+                                
+                                <section class="glass-panel rounded-xl p-8 mb-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
+                                    <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
+                                        <span class="material-symbols-outlined text-primary text-3xl">center_focus_strong</span>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Target Objects</h2>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Restrict the model to only output bounding boxes for these specified objects. If empty, all objects are shown.</p>
+                                        <div id="target-objects-list" class="flex flex-wrap gap-2 min-h-[40px] p-4 bg-surface-container-low rounded-lg border border-outline-variant/20">
+                                            <!-- Dynamically populated tags go here -->
+                                        </div>
+                                        <div class="flex gap-2 pt-2">
+                                            <input id="target-object-input" type="text" placeholder="e.g. person, car, dog..." class="flex-1 bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none">
+                                            <button id="btn-add-target-object" class="px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-lg font-bold hover:bg-primary hover:text-on-primary transition-colors">Add Object</button>
                                         </div>
                                     </div>
                                 </section>
@@ -1356,90 +1375,312 @@
                                         </li>
                                         <li><a href="settings_alert.html"
                                                 class="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary-container/20 text-primary border-l-4 border-primary text-left transition-colors font-body-md text-body-md font-bold"><span
-                                                    class="material-symbols-outlined">notifications_active</span>Alerts
-                                                &amp; Triggers</a></li>
+                                                class="material-symbols-outlined">notifications_active</span>Notifications</a></li>
                                     </ul>
                                 </div>
                             </nav>
                             <div class="col-span-9 space-y-8">
-                                <!-- Alert Notification Rules -->
-                                <section class="glass-panel rounded-xl p-8 shadow-[0_20px_40px_rgba(75,142,255,0.05)]">
-                                    <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
+                                <!-- Notifications Settings -->
+                                <section class="glass-panel rounded-xl p-6 md:p-8 border border-outline-variant/40">
+                                    <div class="flex items-center gap-3 mb-8 border-b border-outline-variant/30 pb-4">
                                         <span class="material-symbols-outlined text-primary text-3xl">notifications_active</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Target Objects</h2>
+                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Notifications</h2>
                                     </div>
-                                    <div class="space-y-4">
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-person" type="checkbox" checked>
-                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-person">Person</label>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        
+                                        <!-- Camera Events -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">videocam</span> Camera Events
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Camera Connected</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a new camera is found or connected.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-cam-connected" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-cam-connected"></label>
+                                                </div>
                                             </div>
-                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-car" type="checkbox" checked>
-                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-car">Car</label>
-                                            </div>
-                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-truck" type="checkbox">
-                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-truck">Truck</label>
-                                            </div>
-                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-animal" type="checkbox">
-                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-animal">Animal</label>
-                                            </div>
-                                            <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors col-span-2">
-                                                <input class="w-5 h-5 rounded border-outline-variant bg-surface-container-highest text-primary focus:ring-primary cursor-pointer" id="alert-target-unrecognized" type="checkbox">
-                                                <label class="font-body-md text-on-surface cursor-pointer" for="alert-target-unrecognized">Unrecognized Object (Anomaly)</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-                                <!-- Threat Level Triggers -->
-                                <section class="glass-panel rounded-xl p-8">
-                                    <div class="flex items-center gap-3 mb-6 border-b border-outline-variant/30 pb-4">
-                                        <span class="material-symbols-outlined text-primary text-3xl">warning</span>
-                                        <h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Threat Triggers & Actions</h2>
-                                    </div>
-                                    <div class="space-y-6">
-                                        <div class="space-y-2">
-                                            <div class="flex justify-between font-label-mono text-label-mono">
-                                                <span class="text-on-surface">Critical Threat Threshold</span><span id="alert-threat-val" class="text-primary">80%</span>
-                                            </div>
-                                            <input id="alert-threat-thresh" class="w-full h-2 bg-surface-container rounded-full appearance-none cursor-pointer accent-primary" type="range" min="0" max="100" value="80" oninput="document.getElementById('alert-threat-val').innerText = this.value + '%'">
-                                        </div>
-                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Auto-Screenshot</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Capture frame when threshold is exceeded.</p>
-                                            </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="alert-auto-screen" type="checkbox">
-                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="alert-auto-screen"></label>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Camera Disconnected</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a camera connection is lost.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-cam-disconnected" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-cam-disconnected"></label>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div>
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Auto-Record</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Start video recording on trigger.</p>
+                                        
+                                        <!-- Camera Errors -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-error uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">videocam_off</span> Camera Errors
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Connection Failed</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify on connection failure or lost feed.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-cam-failed" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-cam-failed"></label>
+                                                </div>
                                             </div>
-                                            <div class="relative inline-block w-12 mr-2 align-middle select-none">
-                                                <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="alert-auto-record" type="checkbox">
-                                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="alert-auto-record"></label>
+
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Permission Denied</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when camera hardware permission is denied.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-cam-permission" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-cam-permission"></label>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
-                                            <div class="flex-1">
-                                                <h3 class="font-body-md text-body-md font-bold text-on-surface mb-1">Cooldown Period</h3>
-                                                <p class="font-label-mono text-label-mono text-on-surface-variant">Seconds before a new alert can be triggered.</p>
+
+                                        <!-- Model Events -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">memory</span> Model Events
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Model Loaded</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when the AI model loads successfully.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-model-loaded" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-model-loaded"></label>
+                                                </div>
                                             </div>
-                                            <input id="alert-cooldown" type="number" min="0" max="3600" value="60" class="bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-lg px-4 py-2 font-body-md focus:border-primary outline-none w-24">
+
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Model Added</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a new model is added to the system.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-model-added" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-model-added"></label>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Target Object Detected</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a specified target object is detected.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-model-detected" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer" for="notif-model-detected"></label>
+                                                </div>
+                                            </div>
                                         </div>
+
+                                        <!-- Model Errors -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-error uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">warning</span> Model Errors
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Inference Failed</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify on model inference failure or error.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-model-failed" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-model-failed"></label>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Model Overloaded</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when the model is overloaded or latency is high.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-model-overloaded" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-model-overloaded"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Session & Media Events -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">photo_camera</span> Session & Media Events
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Session State</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a recording session starts, pauses, resumes, or finishes.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-session-state" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-session-state"></label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Screenshot Saved</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a screenshot is successfully captured.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-screenshot-saved" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-screenshot-saved"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Session & Media Errors -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-error uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">broken_image</span> Media Errors
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Media Failed</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify on screenshot or recording session failures.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-media-error" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-media-error"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Grid Layout for Settings Events and Errors side-by-side -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <!-- Settings Events -->
+                                            <div class="space-y-4">
+                                                <h3 class="font-label-mono text-label-mono text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                    <span class="material-symbols-outlined text-[18px]">settings</span> Settings Events
+                                                </h3>
+                                                
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Settings Saved</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when settings are successfully saved.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-settings-saved" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-settings-saved"></label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Settings Reverted</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when settings are reverted.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-settings-reverted" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-settings-reverted"></label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Printer Added</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a new printer is added.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-printer-added" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-printer-added"></label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">ROI Updated</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when the Region of Interest is set or cleared.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-roi-updated" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-roi-updated"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Settings Errors -->
+                                            <div class="space-y-4">
+                                                <h3 class="font-label-mono text-label-mono text-error uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                    <span class="material-symbols-outlined text-[18px]">error</span> Settings Errors
+                                                </h3>
+                                                
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Save Failed</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when settings fail to save.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-settings-failed" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-settings-failed"></label>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                    <div>
+                                                        <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Invalid Configuration</h4>
+                                                        <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when invalid configuration values are detected.</p>
+                                                    </div>
+                                                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                        <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-settings-invalid" type="checkbox">
+                                                        <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-settings-invalid"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Export & Storage -->
+                                        <div class="space-y-4">
+                                            <h3 class="font-label-mono text-label-mono text-primary uppercase tracking-widest flex items-center gap-2 mb-2">
+                                                <span class="material-symbols-outlined text-[18px]">save</span> Export & Storage
+                                            </h3>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-primary/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Export Success</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when data is exported or saved locally.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-export-success" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-primary-container cursor-pointer" for="notif-export-success"></label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/20 hover:border-error/30 transition-colors">
+                                                <div>
+                                                    <h4 class="font-body-md text-body-md font-bold text-on-surface mb-1">Export Failed</h4>
+                                                    <p class="font-label-mono text-label-mono text-on-surface-variant">Notify when a ZIP export or save operation fails.</p>
+                                                </div>
+                                                <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                                                    <input checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="notif-export-failed" type="checkbox">
+                                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-error-container cursor-pointer" for="notif-export-failed"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </section>
                                 <div class="flex justify-end gap-4 pt-4 border-t border-outline-variant/20">
-                                    <button class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
+                                    <button id="btn-revert-alert" class="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md font-bold">Revert Changes</button>
                                     <button id="btn-apply-alert" class="px-6 py-3 rounded-lg bg-primary text-on-primary font-body-md text-body-md font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(173,198,255,0.3)]">Apply Settings</button>
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -1607,7 +1848,75 @@
 
             </section>
         </main>
+    </div> <!-- /#app-container -->
+
+    <!-- Camera PiP (Picture-in-Picture) -->
+    <div id="camera-pip" class="hidden">
+        <div class="pip-header">
+            <span class="pip-label"><span class="pip-dot"></span> LIVE FEED</span>
+            <button class="pip-close" id="pip-close-btn" title="Close PiP">
+                <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+            </button>
+        </div>
+        <div class="relative w-full h-full">
+            <video id="pip-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+            <canvas id="pip-canvas" class="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"></canvas>
+        </div>
+        <button class="pip-expand" id="pip-expand-btn" title="Go to Main View">
+            <span class="material-symbols-outlined" style="font-size:18px;">open_in_full</span>
+        </button>
     </div>
+
+    <!-- Unsaved Changes Warning Modal -->
+    <div id="unsaved-modal" class="unsaved-modal-overlay">
+        <div class="unsaved-modal-backdrop"></div>
+        <div class="unsaved-modal-box">
+            <span class="material-symbols-outlined text-[#ffb74d] text-5xl mb-4" style="font-variation-settings: 'FILL' 1;">warning</span>
+            <h3 class="font-headline-lg text-on-surface text-lg mb-2">Unsaved Changes</h3>
+            <p class="font-body-md text-on-surface-variant text-sm mb-6">You have unsaved settings changes. Are you sure you want to leave?</p>
+            <div class="flex gap-3 justify-center">
+                <button id="unsaved-stay-btn" class="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-mono text-sm font-bold hover:brightness-110 transition-all">
+                    Stay on Page
+                </button>
+                <button id="unsaved-leave-btn" class="px-5 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant font-label-mono text-sm font-bold hover:bg-surface-container-high transition-colors">
+                    Leave Without Saving
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROI Selection Modal -->
+    <div id="roi-modal" class="roi-modal-overlay">
+        <div class="roi-modal-backdrop"></div>
+        <div class="roi-modal-container">
+            <div class="flex items-center justify-between p-4 border-b border-outline-variant/30">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">crop_free</span>
+                    <h3 class="font-headline-lg text-on-surface text-base">Set Region of Interest (ROI)</h3>
+                </div>
+                <button id="roi-cancel-btn" class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                    <span class="material-symbols-outlined text-lg">close</span>
+                </button>
+            </div>
+            <div class="p-4">
+                <p class="font-body-md text-on-surface-variant text-sm mb-3">在下方相機畫面上拖曳以選取偵測區域。</p>
+                <div id="roi-canvas-container" class="relative w-full bg-black rounded-lg overflow-hidden" style="height: 380px;">
+                    <canvas id="roi-bg-canvas" class="absolute inset-0 w-full h-full"></canvas>
+                    <canvas id="roi-draw-canvas" class="absolute inset-0 w-full h-full cursor-crosshair" style="z-index:2;"></canvas>
+                    <div id="roi-coords" class="absolute bottom-2 left-2 font-label-mono text-[10px] text-primary bg-black/60 px-2 py-1 rounded" style="z-index:3;">X: 0, Y: 0, W: 0, H: 0</div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 p-4 border-t border-outline-variant/30">
+                <button id="roi-clear-btn" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant font-label-mono text-sm hover:bg-surface-container-high transition-colors">
+                    Clear
+                </button>
+                <button id="roi-confirm-btn" class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-mono text-sm font-bold hover:brightness-110 transition-all">
+                    Confirm ROI
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/router.js"></script>
     <script src="js/app.js"></script>
 </body>

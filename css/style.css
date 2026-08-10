@@ -114,7 +114,7 @@ body {
 /* === Toggle Switch === */
 .toggle-checkbox {
     top: 0;
-    left: 1.5rem; /* OFF position: Circle on Right */
+    left: 0; /* OFF position: Circle on Left */
     z-index: 1;
     border-color: #414755;
     background-color: #ffffff;
@@ -122,10 +122,10 @@ body {
 }
 
 .toggle-checkbox:checked {
-    left: 0; /* ON position: Circle on Left */
-    border-color: #3b82f6;
+    left: 1.5rem; /* ON position: Circle on Right */
+    border-color: #4b8eff;
     background-color: #ffffff;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 8px rgba(75, 142, 255, 0.5);
 }
 
 .toggle-label {
@@ -133,49 +133,435 @@ body {
     height: 1.5rem;
     background-color: #2d3449;
     border-radius: 9999px;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .toggle-checkbox:checked + .toggle-label {
-    background-color: #ffffff; /* Track is white when ON */
-    border: 1px solid #cbd5e1;
+    background-color: #4b8eff;
+    box-shadow: 0 0 12px rgba(75, 142, 255, 0.3);
 }
 
-/* === Light Theme Overrides === */
+/* ============================================
+   Light Theme — Comprehensive Overhaul
+   ============================================ */
 body.light-mode {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
+    background-color: #e0f0ff !important;
+    color: #0a1a3a !important;
 }
 
+body.light-mode #app-container {
+    background-color: #cce0ff !important;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Glass Panel */
 body.light-mode .glass-panel {
-    background: rgba(255, 255, 255, 0.85) !important;
-    border-color: rgba(203, 213, 225, 0.6) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    background: rgba(200, 230, 255, 0.6) !important;
+    backdrop-filter: blur(20px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.8) !important;
+    border-left: 1px solid rgba(148, 193, 255, 0.4) !important;
+    border-right: 1px solid rgba(148, 193, 255, 0.4) !important;
+    border-bottom: 1px solid rgba(148, 193, 255, 0.5) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
-body.light-mode #top-header,
+/* Sidebar & Header */
 body.light-mode #sidebar {
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-color: rgba(203, 213, 225, 0.8) !important;
+    background: linear-gradient(180deg, rgba(200, 230, 255, 0.95) 0%, rgba(180, 215, 255, 0.98) 100%) !important;
+    border-right: 1px solid rgba(148, 193, 255, 0.6) !important;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04) !important;
 }
 
+body.light-mode #top-header {
+    background: rgba(200, 230, 255, 0.88) !important;
+    backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid rgba(148, 193, 255, 0.5) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Text Colors */
 body.light-mode .text-on-surface {
-    color: #0f172a !important;
+    color: #0a1a3a !important;
 }
 
 body.light-mode .text-on-surface-variant {
-    color: #475569 !important;
+    color: #334e7a !important;
 }
 
-body.light-mode .bg-surface-container,
-body.light-mode .bg-surface-container-low,
+body.light-mode .text-outline {
+    color: #5c85c2 !important;
+}
+
+body.light-mode .text-outline-variant {
+    color: #85aee6 !important;
+}
+
+/* Surface Containers */
+body.light-mode .bg-surface-container {
+    background-color: #b3d1ff !important;
+}
+
+body.light-mode .bg-surface-container-low {
+    background-color: #cce0ff !important;
+}
+
 body.light-mode .bg-surface-container-highest {
+    background-color: #99c2ff !important;
+}
+
+body.light-mode .bg-surface-dim {
+    background-color: #b3d1ff !important;
+}
+
+body.light-mode .bg-surface-bright {
+    background-color: #e6f2ff !important;
+}
+
+/* Data Cards */
+body.light-mode .data-card {
+    background: #e6f2ff !important;
+    border: 1px solid #b3d1ff !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Form Inputs */
+body.light-mode select,
+body.light-mode input[type="text"],
+body.light-mode input[type="number"],
+body.light-mode textarea {
+    background-color: #d9eaff !important;
+    border-color: #99c2ff !important;
+    color: #0a1a3a !important;
+}
+
+body.light-mode select:focus,
+body.light-mode input[type="text"]:focus,
+body.light-mode input[type="number"]:focus {
+    border-color: #4b8eff !important;
+    box-shadow: 0 0 0 2px rgba(75, 142, 255, 0.15) !important;
+}
+
+/* Range Sliders */
+body.light-mode input[type="range"] {
+    background: #cbd5e1 !important;
+}
+
+/* Checkboxes */
+body.light-mode input[type="checkbox"]:not(.toggle-checkbox) {
     background-color: #f1f5f9 !important;
     border-color: #cbd5e1 !important;
 }
 
+/* Toggle in light mode */
+body.light-mode .toggle-label {
+    background-color: #94a3b8;
+}
 
-/* === Sidebar — Force absolute positioning within #app-container === */
+body.light-mode .toggle-checkbox:checked + .toggle-label {
+    background-color: #4b8eff;
+}
+
+body.light-mode .toggle-checkbox {
+    border-color: #94a3b8;
+}
+
+/* Border colors */
+body.light-mode .border-outline-variant\/20,
+body.light-mode .border-outline-variant\/30,
+body.light-mode .border-outline-variant\/40 {
+    border-color: rgba(203, 213, 225, 0.6) !important;
+}
+
+/* Notification Panel */
+body.light-mode .notification-panel {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(203, 213, 225, 0.6) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 20px rgba(75, 142, 255, 0.05) !important;
+}
+
+body.light-mode .notification-panel .notif-header {
+    border-bottom: 1px solid rgba(203, 213, 225, 0.5) !important;
+    color: #64748b !important;
+}
+
+body.light-mode .notification-panel .notif-item {
+    border-bottom: 1px solid rgba(203, 213, 225, 0.3) !important;
+}
+
+body.light-mode .notification-panel .notif-item:hover {
+    background: rgba(75, 142, 255, 0.06) !important;
+}
+
+/* Scrollbars in light mode */
+body.light-mode ::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.8);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.5);
+    border-radius: 4px;
+}
+
+body.light-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
+}
+
+/* Terminal in light */
+body.light-mode .terminal-text {
+    text-shadow: none;
+}
+
+/* Lightbox in light mode */
+body.light-mode .lightbox-container {
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid rgba(203, 213, 225, 0.5) !important;
+}
+
+body.light-mode .lightbox-header,
+body.light-mode .lightbox-footer {
+    background: rgba(241, 245, 249, 0.9) !important;
+    border-color: rgba(203, 213, 225, 0.4) !important;
+}
+
+body.light-mode .lightbox-btn {
+    color: #64748b;
+}
+
+body.light-mode .lightbox-btn:hover {
+    background: rgba(75, 142, 255, 0.1);
+    color: #3b82f6;
+}
+
+/* Scan line in light mode */
+body.light-mode .scan-line::after {
+    background: linear-gradient(90deg, transparent, rgba(75, 142, 255, 0.15), transparent);
+}
+
+/* Hover effects */
+body.light-mode .hover\:bg-surface-container-high:hover {
+    background-color: #dde4ee !important;
+}
+
+/* ============================================
+   Camera PiP (Picture-in-Picture)
+   ============================================ */
+#camera-pip {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    height: 200px;
+    z-index: 50;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(75, 142, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(75, 142, 255, 0.15);
+    background: #0b1326;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    cursor: move;
+    user-select: none;
+}
+
+#camera-pip.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8) translateY(20px);
+    display: none !important;
+}
+
+#camera-pip video, #camera-pip canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+#camera-pip .pip-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    z-index: 2;
+    pointer-events: auto;
+}
+
+#camera-pip .pip-header .pip-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#camera-pip .pip-header .pip-label .pip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4edea3;
+    box-shadow: 0 0 6px rgba(78, 222, 163, 0.6);
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+#camera-pip .pip-close {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    pointer-events: auto;
+}
+
+#camera-pip .pip-close:hover {
+    background: rgba(255, 68, 68, 0.4);
+    color: #fff;
+}
+
+#camera-pip .pip-expand {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 2;
+    pointer-events: auto;
+}
+
+#camera-pip .pip-expand:hover {
+    background: rgba(75, 142, 255, 0.4);
+    color: #fff;
+}
+
+body.light-mode #camera-pip {
+    border-color: rgba(75, 142, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 20px rgba(75, 142, 255, 0.1);
+}
+
+/* ============================================
+   ROI Modal
+   ============================================ */
+.roi-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.roi-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.roi-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(6px);
+}
+
+.roi-modal-container {
+    position: relative;
+    width: 720px;
+    max-width: 90vw;
+    background: rgba(23, 31, 51, 0.97);
+    border: 1px solid rgba(65, 71, 85, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(75, 142, 255, 0.1);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.roi-modal-overlay.open .roi-modal-container {
+    transform: scale(1);
+}
+
+body.light-mode .roi-modal-container {
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid rgba(203, 213, 225, 0.6) !important;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ============================================
+   Unsaved Changes Modal
+   ============================================ */
+.unsaved-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.unsaved-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.unsaved-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.unsaved-modal-box {
+    position: relative;
+    width: 420px;
+    max-width: 90vw;
+    background: rgba(23, 31, 51, 0.97);
+    border: 1px solid rgba(65, 71, 85, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 68, 68, 0.08);
+    padding: 32px;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.25s ease;
+}
+
+.unsaved-modal-overlay.open .unsaved-modal-box {
+    transform: scale(1);
+}
+
+body.light-mode .unsaved-modal-box {
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid rgba(203, 213, 225, 0.6) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
+}
+
 #sidebar {
     position: absolute !important;
     transition: all 0.3s ease-in-out;

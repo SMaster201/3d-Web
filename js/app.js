@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─── Terminal Logging Helper ────────────────────
     const terminal = document.getElementById('terminal-log');
 
-    function termLog(message, type = 'info') {
+        function termLog(message, type = 'info') {
         if (!terminal) return;
         const logContainer = terminal.querySelector('.flex.flex-col');
         if (!logContainer) return;
@@ -145,6 +145,76 @@ document.addEventListener('DOMContentLoaded', () => {
         const entries = logContainer.querySelectorAll('p');
         if (entries.length > 50) {
             entries[0].remove();
+        }
+
+        // --- Auto route to Notification Bell ---
+        if (window.addNotification) {
+            // Ignore decorative lines
+            if (message.includes('═════') || message.trim().startsWith('→')) return;
+
+            let notifId = null;
+            let icon = 'info';
+            let cleanMsg = message;
+
+            if (message.includes('CAM_SCAN:') || message.includes('SYS: Scanning') || message.includes('CAM_LOAD:')) {
+                notifId = type === 'error' ? 'notif-cam-failed' : 'notif-cam-connected';
+                icon = type === 'error' ? 'videocam_off' : 'videocam';
+                cleanMsg = message.replace(/^(CAM_SCAN|SYS|CAM_LOAD):\s*/, '');
+            } else if (message.includes('MDL_ADD:') || message.includes('SYS: Restored')) {
+                notifId = 'notif-model-added';
+                icon = 'memory';
+                cleanMsg = message.replace(/^(MDL_ADD|SYS):\s*/, '');
+            } else if (message.includes('MDL_LOAD:') || message.includes('DETECT:') || message.includes('RE-ID:')) {
+                notifId = type === 'error' ? 'notif-model-failed' : 'notif-model-loaded';
+                if (message.includes('No model detected') || message.includes('Please select')) notifId = 'notif-model-failed';
+                icon = type === 'error' ? 'model_training' : 'check_circle';
+                cleanMsg = message.replace(/^(MDL_LOAD|DETECT|RE-ID):\s*/, '');
+            } else if (message.includes('PRINTER_ADD:')) {
+                notifId = 'notif-printer-added';
+                icon = 'print';
+                cleanMsg = message.replace(/^PRINTER_ADD:\s*/, '');
+            } else if (message.includes('SCREENSHOT:')) {
+                notifId = type === 'error' ? 'notif-media-error' : 'notif-screenshot-saved';
+                icon = type === 'error' ? 'broken_image' : 'photo_camera';
+                cleanMsg = message.replace(/^SCREENSHOT( ERROR)?:\s*/, '');
+            } else if (message.includes('SESSION:')) {
+                notifId = type === 'error' ? 'notif-media-error' : 'notif-session-state';
+                icon = 'fiber_manual_record';
+                if (message.includes('paused')) icon = 'pause';
+                if (message.includes('resumed')) icon = 'play_arrow';
+                if (message.includes('finished')) icon = 'dns';
+                cleanMsg = message.replace(/^SESSION:\s*/, '');
+            } else if (message.includes('ROI:')) {
+                notifId = 'notif-roi-updated';
+                icon = 'crop';
+                cleanMsg = message.replace(/^ROI:\s*/, '');
+            } else if (message.includes('LOCAL SAVE:') || message.includes('ZIP EXPORT:') || message.includes('ZIP ERROR:')) {
+                notifId = type === 'error' ? 'notif-export-failed' : 'notif-export-success';
+                icon = type === 'error' ? 'error' : 'save';
+                cleanMsg = message.replace(/^(LOCAL SAVE|ZIP EXPORT|ZIP ERROR):\s*/, '');
+            } else if (message.includes('CONFIRM:') || message.includes('Settings') || message.includes('parameters') || message.includes('Camera video') || message.includes('Camera FPS') || message.includes('Notification') || message.includes('Warning: Could not reach backend')) {
+                notifId = (type === 'error' || type === 'warning') ? 'notif-settings-invalid' : 'notif-settings-saved';
+                if (message.includes('reverted')) notifId = 'notif-settings-reverted';
+                icon = 'settings';
+                cleanMsg = message.replace(/^CONFIRM:\s*/, '');
+            }
+
+            if (notifId) {
+                // simple deduplication (within 100ms)
+                const _now = Date.now();
+                window._lastAutoNotifTime = window._lastAutoNotifTime || 0;
+                window._lastAutoNotifMsg = window._lastAutoNotifMsg || '';
+                
+                if (_now - window._lastAutoNotifTime < 100 && window._lastAutoNotifMsg === cleanMsg) {
+                    return; // skip duplicate
+                }
+                
+                window._lastAutoNotifTime = _now;
+                window._lastAutoNotifMsg = cleanMsg;
+                
+                // Add without creating an infinite loop
+                window.addNotification(cleanMsg, type, icon, notifId);
+            }
         }
     }
 
@@ -210,17 +280,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!computeLoadVal || !computeAppBar || !computeOtherBar || !vramUsageVal || !vramAppBar || !vramOtherBar) return;
                 const data = JSON.parse(event.data);
                 const { appCpu, otherCpu, totalCpu, appVram, otherVram, totalVramUsed, totalVramCap } = data;
-                
+
                 window.aegisSystemState.vramUsage = totalVramUsed;
-                
+
                 computeLoadVal.textContent = `${totalCpu}%`;
                 if (computeLoadSub) computeLoadSub.textContent = `Other ${otherCpu}% | Aegis ${appCpu}%`;
                 computeAppBar.style.width = `${appCpu}%`;
                 computeOtherBar.style.width = `${otherCpu}%`;
-                
+
                 vramUsageVal.innerHTML = `${totalVramUsed}<span class="text-[12px] text-on-surface-variant">GB</span>`;
                 if (vramUsageSub) vramUsageSub.textContent = `Other ${otherVram}G | Aegis ${appVram}G`;
-                
+
                 const appVramPct = (appVram / totalVramCap) * 100;
                 const otherVramPct = (otherVram / totalVramCap) * 100;
                 vramAppBar.style.width = `${Math.min(100, appVramPct)}%`;
@@ -229,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             telemetryWS.onclose = () => {
                 setTimeout(connectTelemetryWS, 5000); // Reconnect
             };
-        } catch(e) {
+        } catch (e) {
             console.error("Telemetry WS Error:", e);
         }
     }
@@ -310,7 +380,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.addNotification = (message, type = 'info', icon = 'info') => {
+    window.addNotification = (message, type = 'info', icon = 'info', notifId = null) => {
+        console.log(`addNotification called: ${message} (notifId: ${notifId})`);
+        if (notifId) {
+            let config = {};
+            try {
+                config = JSON.parse(localStorage.getItem('aegis_settings_notif') || '{}');
+            } catch(e) {
+                config = {};
+            }
+            if (config[notifId] === false || config[notifId] === 'false') {
+                console.log(`Notification ${notifId} blocked by settings.`);
+                return; // User has disabled this notification
+            }
+        }
+        console.log(`Adding notification to array.`);
+        
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         notifications.unshift({ message, type, icon, time: timeStr, read: false });
@@ -399,10 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedIndex <= 0) {
                 if (detectedCameras.length === 0) {
                     termLog('CAM_LOAD: No camera detected.', 'error');
-                    window.addNotification('No camera detected.', 'error', 'videocam_off');
                 } else {
                     termLog('CAM_LOAD: Please select the camera.', 'error');
-                    window.addNotification('Please select the camera.', 'error', 'videocam_off');
                 }
                 return;
             }
@@ -419,12 +502,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Build video constraints — use exact deviceId if available, otherwise fallback
-                const videoConstraints = selectedDeviceId
-                    ? { deviceId: { exact: selectedDeviceId } }
-                    : true;
+                const videoConstraints = selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {};
+
+                try {
+                    const modelConfig = JSON.parse(localStorage.getItem('aegis_settings_model'));
+                    if (modelConfig && modelConfig.maxFps && parseInt(modelConfig.maxFps) > 0) {
+                        const maxFps = parseInt(modelConfig.maxFps);
+                        videoConstraints.frameRate = { ideal: maxFps, max: maxFps };
+                    }
+                } catch (e) { }
+
+                const finalVideoConstraints = Object.keys(videoConstraints).length > 0 ? videoConstraints : true;
 
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: videoConstraints
+                    video: finalVideoConstraints
                 });
 
                 activeCameraStream = stream;
@@ -455,11 +546,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.aegisSystemState.cameraOnline = true;
                 updateSystemStatus();
 
+                termLog('CAM_LOAD: Camera successfully loaded.', 'success');
+
                 termLog(`CAM_LOAD: "${selectedLabel}" loaded successfully. Stream active.`, 'success');
                 termLog(`CAM_LOAD: Resolution: ${settings.width}x${settings.height}, FPS: ${settings.frameRate}`);
             } catch (err) {
                 termLog(`CAM_LOAD: Failed to load camera — ${err.message}`, 'error');
-                window.addNotification(`Camera load failed: ${err.message}`, 'error', 'error');
             }
         });
     }
@@ -527,10 +619,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
                 if (!hasModels) {
                     termLog('MDL_LOAD: No model detected.', 'error');
-                    window.addNotification('No model detected.', 'error', 'model_training');
                 } else {
                     termLog('MDL_LOAD: Please select the model.', 'error');
-                    window.addNotification('Please select the model.', 'error', 'model_training');
                 }
                 return;
             }
@@ -563,7 +653,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Start detection overlay if camera is active
                     startDetectionOverlay();
 
-                    window.addNotification(`Model "${selectedLabel}" loaded and ready.`, 'info', 'check_circle');
                 }, 800);
             }, 600);
         });
@@ -633,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (missing.length > 0) {
                 const missingStr = missing.join(', ');
                 termLog(`CONFIRM: Missing selections — ${missingStr}. Please complete all settings.`, 'warning');
-                window.addNotification(`Please select: ${missingStr}`, 'warning', 'warning');
                 return;
             }
 
@@ -652,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
             termLog(`  → Printer: ${printerName}`);
             termLog('═══════════════════════════════════════════');
 
-            window.addNotification('All settings confirmed and applied.', 'info', 'check_circle');
         });
     }
 
@@ -677,7 +764,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!cameraVideo || cameraVideo.classList.contains('hidden') || !activeCameraStream) {
                 termLog('SCREENSHOT: No active camera feed. Please load a camera first.', 'error');
-                window.addNotification('No active camera feed for screenshot.', 'error', 'photo_camera');
                 return;
             }
 
@@ -762,13 +848,11 @@ document.addEventListener('DOMContentLoaded', () => {
         reidentifyBtn.addEventListener('click', () => {
             if (!window.aegisSystemState.modelOnline || !window.aegisSystemState.loadedModelName) {
                 termLog('RE-ID: No model is currently loaded. Please load a model first.', 'error');
-                window.addNotification('No model loaded for re-identification.', 'error', 'model_training');
                 return;
             }
 
             if (!activeCameraStream) {
                 termLog('RE-ID: No active camera feed. Please load a camera first.', 'error');
-                window.addNotification('No active camera feed for re-identification.', 'error', 'videocam_off');
                 return;
             }
 
@@ -794,7 +878,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Restart detection overlay
                     startDetectionOverlay();
 
-                    window.addNotification(`Re-identification complete with "${modelName}".`, 'info', 'check_circle');
                 }, 800);
             }, 500);
         });
@@ -812,8 +895,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!detectionCanvas || !cameraVideo || cameraVideo.classList.contains('hidden')) return;
 
         const rect = cameraVideo.getBoundingClientRect();
-        detectionCanvas.width = rect.width;
-        detectionCanvas.height = rect.height;
+        let cWidth = rect.width;
+        let cHeight = rect.height;
+        if (cWidth === 0 && cameraVideo.videoWidth) {
+            cWidth = cameraVideo.videoWidth;
+            cHeight = cameraVideo.videoHeight;
+        }
+        detectionCanvas.width = cWidth;
+        detectionCanvas.height = cHeight;
 
         const ctx = detectionCanvas.getContext('2d');
         ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
@@ -828,16 +917,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         simulatedDetections.forEach(det => {
             // Filter 1: Confidence threshold filter
-            const confVal = parseInt(det.confidence.replace('%', ''), 10) || 100;
+            let confVal = 100;
+            if (typeof det.confidence === 'number') {
+                confVal = det.confidence * 100;
+            } else if (typeof det.confidence === 'string') {
+                confVal = parseInt(det.confidence.replace('%', ''), 10) || 100;
+            }
             if (confVal < minConf) return;
-
-            // Filter 2: Target Object Class filter
-            const labelLower = det.label.toLowerCase();
-            if (labelLower.includes('person') && !allowPerson) return;
-            if (labelLower.includes('car') && !allowCar) return;
-            if (labelLower.includes('truck') && !allowTruck) return;
-            if (labelLower.includes('animal') && !allowAnimal) return;
-            if (labelLower.includes('unrecognized') && !allowUnrecognized) return;
 
             // Smoothly interpolate positions
             det.x += (det.targetX - det.x) * 0.05;
@@ -868,7 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath(); ctx.moveTo(x + w - cornerLen, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - cornerLen); ctx.stroke();
 
             // Draw label background
-            const labelText = `${det.label} ${det.confidence}`;
+            const displayConf = typeof det.confidence === 'number' ? Math.round(det.confidence * 100) + '%' : det.confidence;
+            const labelText = `${det.label} ${displayConf}`;
             ctx.font = '600 11px "JetBrains Mono", monospace';
             const textWidth = ctx.measureText(labelText).width;
             const labelH = 18;
@@ -909,9 +996,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             targetX: nd.x, targetY: nd.y, targetW: nd.w, targetH: nd.h,
                         };
                     });
-                    
+
                     if (simulatedDetections.length === 0) {
-                        simulatedDetections = newDets.map(nd => ({...nd, x: nd.targetX, y: nd.targetY, w: nd.targetW, h: nd.targetH}));
+                        simulatedDetections = newDets.map(nd => ({ ...nd, x: nd.targetX, y: nd.targetY, w: nd.targetW, h: nd.targetH }));
                     } else {
                         simulatedDetections = newDets.map((nd, i) => {
                             const old = simulatedDetections[i] || nd;
@@ -920,23 +1007,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             };
-        } catch(e) {
+        } catch (e) {
             console.error("Inference WS Error:", e);
         }
 
-        // Send frames at 5fps
+        // Dynamic frame sending based on user setting
+        let lastSendTime = 0;
         inferenceInterval = setInterval(() => {
-            if (inferenceWS && inferenceWS.readyState === WebSocket.OPEN && cameraVideo && !cameraVideo.classList.contains('hidden')) {
-                const canvas = document.createElement('canvas');
-                // Downscale for performance
-                canvas.width = 640;
-                canvas.height = 480;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                inferenceWS.send(dataUrl);
+            const now = Date.now();
+            const intervalMs = (window.aegisModelInterval || 0) * 1000;
+            // Baseline 200ms (5fps) if real-time, else use user defined interval
+            const targetWait = intervalMs > 0 ? intervalMs : 200;
+
+            if (now - lastSendTime >= targetWait) {
+                if (inferenceWS && inferenceWS.readyState === WebSocket.OPEN && cameraVideo && !cameraVideo.classList.contains('hidden')) {
+                    const canvas = document.createElement('canvas');
+                    // Downscale for performance
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+
+                    const pipEl = document.getElementById('camera-pip');
+                    const pipVideo = document.getElementById('pip-video');
+                    const activeVideo = (pipEl && !pipEl.classList.contains('hidden') && pipVideo) ? pipVideo : cameraVideo;
+
+                    ctx.drawImage(activeVideo, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    inferenceWS.send(dataUrl);
+                    lastSendTime = now;
+                }
             }
-        }, 200);
+        }, 50);
 
         drawDetections();
         termLog('DETECT: Real-time backend inference started.', 'success');
@@ -1090,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Download Session Attributes Log JSON
             const logData = {
                 sessionName: record.sessionName,
-                timestamp: `${record.year}-${String(record.month).padStart(2,'0')}-${String(record.day).padStart(2,'0')} ${String(record.hour).padStart(2,'0')}:${String(record.minute).padStart(2,'0')}:${String(record.second).padStart(2,'0')}`,
+                timestamp: `${record.year}-${String(record.month).padStart(2, '0')}-${String(record.day).padStart(2, '0')} ${String(record.hour).padStart(2, '0')}:${String(record.minute).padStart(2, '0')}:${String(record.second).padStart(2, '0')}`,
                 duration: record.durationFormatted,
                 cameraName: record.cameraName,
                 printerName: record.printerName,
@@ -1144,7 +1245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.exportRecordAsZip = async function(rec) {
+    window.exportRecordAsZip = async function (rec) {
         if (!rec) return;
 
         if (!window.JSZip) {
@@ -1179,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Session Attribute Log JSON
             const logData = {
                 sessionName: fullRec.sessionName,
-                timestamp: `${fullRec.year}-${String(fullRec.month).padStart(2,'0')}-${String(fullRec.day).padStart(2,'0')} ${String(fullRec.hour).padStart(2,'0')}:${String(fullRec.minute).padStart(2,'0')}:${String(fullRec.second).padStart(2,'0')}`,
+                timestamp: `${fullRec.year}-${String(fullRec.month).padStart(2, '0')}-${String(fullRec.day).padStart(2, '0')} ${String(fullRec.hour).padStart(2, '0')}:${String(fullRec.minute).padStart(2, '0')}:${String(fullRec.second).padStart(2, '0')}`,
                 duration: fullRec.durationFormatted,
                 cameraName: fullRec.cameraName,
                 printerName: fullRec.printerName,
@@ -1226,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.deleteRecordFromDB = async function(id) {
+    window.deleteRecordFromDB = async function (id) {
         try {
             const db = await openDatabase();
             return new Promise((resolve, reject) => {
@@ -1285,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateRecUI() {
         if (!recStatusDot || !sessionStartBtn || !sessionPauseBtn || !sessionStopBtn) return;
-        
+
         const recBadge = document.getElementById('rec-badge');
 
         if (recState === 'RECORDING') {
@@ -1413,7 +1514,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateRecUI();
             termLog(`SESSION: Started identification recording for "${sessionName}".`, 'success');
-            window.addNotification(`Session "${sessionName}" recording started.`, 'info', 'fiber_manual_record');
         });
     }
 
@@ -1424,12 +1524,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 recState = 'PAUSED';
                 if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.pause();
                 termLog(`SESSION: Recording paused for "${sessionName}".`, 'warning');
-                window.addNotification(`Session "${sessionName}" paused.`, 'warning', 'pause');
             } else if (recState === 'PAUSED') {
                 recState = 'RECORDING';
                 if (mediaRecorder && mediaRecorder.state === 'paused') mediaRecorder.resume();
                 termLog(`SESSION: Recording resumed for "${sessionName}".`, 'success');
-                window.addNotification(`Session "${sessionName}" resumed.`, 'info', 'play_arrow');
             }
             updateRecUI();
         });
@@ -1502,14 +1600,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 termLog('═══════════════════════════════════════════');
                 termLog(`SESSION: Identification "${sessionName}" finished & saved to DB!`, 'success');
-                termLog(`  → Time:     ${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:${String(second).padStart(2,'0')}`);
+                termLog(`  → Time:     ${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`);
                 termLog(`  → Duration: ${record.durationFormatted}`);
                 termLog(`  → Camera:   ${cameraName}`);
                 termLog(`  → Printer:  ${printerName}`);
                 termLog(`  → Defects:  ${defectSummaryStr}`);
                 termLog('═══════════════════════════════════════════');
 
-                window.addNotification(`Session "${sessionName}" saved to Database. Duration: ${record.durationFormatted}`, 'info', 'dns');
 
                 // Reset timer & auto-increment session name to next default
                 recElapsedSeconds = 0;
@@ -1660,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     el.value = currentVal;
                 }
             };
-            
+
             popSelect(filterCamera, cameras, 'All Cameras');
             popSelect(filterPrinter, printers, 'All Printers');
             popSelect(filterModel, models, 'All Models');
@@ -1673,12 +1770,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const vramVal = document.getElementById('filter-vram')?.value || '';
 
         let filteredRecords = records;
-        
+
         if (dateVal) {
             const [y, m, d] = dateVal.split('/');
-            filteredRecords = filteredRecords.filter(r => 
-                String(r.year) === y && 
-                String(r.month).padStart(2, '0') === m && 
+            filteredRecords = filteredRecords.filter(r =>
+                String(r.year) === y &&
+                String(r.month).padStart(2, '0') === m &&
                 String(r.day).padStart(2, '0') === d
             );
         }
@@ -1725,10 +1822,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 pageContainer.classList.remove('hidden');
                 pageInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${reversedRecords.length}`;
-                
+
                 let btnsHtml = '';
                 btnsHtml += `<button onclick="window.setHistoryPage(${historyCurrentPage - 1})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors disabled:opacity-50" ${historyCurrentPage === 1 ? 'disabled' : ''}><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>`;
-                
+
                 for (let i = 1; i <= totalPages; i++) {
                     if (i === historyCurrentPage) {
                         btnsHtml += `<button class="w-8 h-8 rounded bg-primary text-on-primary-fixed flex items-center justify-center font-label-mono text-[12px]">${i}</button>`;
@@ -1736,16 +1833,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         btnsHtml += `<button onclick="window.setHistoryPage(${i})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors font-label-mono text-[12px]">${i}</button>`;
                     }
                 }
-                
+
                 btnsHtml += `<button onclick="window.setHistoryPage(${historyCurrentPage + 1})" class="w-8 h-8 rounded bg-surface-dim border border-outline-variant flex items-center justify-center text-outline hover:text-on-surface transition-colors disabled:opacity-50" ${historyCurrentPage === totalPages ? 'disabled' : ''}><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>`;
-                
+
                 pageBtns.innerHTML = btnsHtml;
             }
         }
 
         // Render DB records
         let dbCardsHtml = pageRecords.map(rec => {
-            const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
+            const timeStr = `${rec.year}-${String(rec.month).padStart(2, '0')}-${String(rec.day).padStart(2, '0')} ${String(rec.hour).padStart(2, '0')}:${String(rec.minute).padStart(2, '0')}:${String(rec.second).padStart(2, '0')}`;
             const activeDefects = Object.entries(rec.defectCounts || {}).filter(([_, c]) => c > 0);
             const recJson = encodeURIComponent(JSON.stringify(rec));
 
@@ -1778,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else {
                 // Grid view card (original)
-                const thumbnailHtml = rec.thumbnail 
+                const thumbnailHtml = rec.thumbnail
                     ? `<div class="bg-surface-dim relative overflow-hidden h-24 border-b border-outline-variant/20">
                          <img class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" src="${rec.thumbnail}" alt="Thumbnail">
                        </div>`
@@ -1831,7 +1928,7 @@ document.addEventListener('DOMContentLoaded', () => {
         historyGridContainer.innerHTML = dbCardsHtml;
     }
 
-    window.setHistoryPage = function(page) {
+    window.setHistoryPage = function (page) {
         historyCurrentPage = page;
         renderHistoryRecords();
     };
@@ -1888,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dateFormat: 'Y/m/d',
             minDate: '2026-01-01',
             maxDate: '2099-12-31',
-            onChange: function(selectedDates, dateStr, instance) {
+            onChange: function (selectedDates, dateStr, instance) {
                 renderHistoryRecords();
             }
         });
@@ -1904,7 +2001,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Export preview panel function
-    window.populatePreviewPanel = function(jsonStr) {
+    window.populatePreviewPanel = function (jsonStr) {
         try {
             const rec = JSON.parse(jsonStr);
             const detailPanel = document.getElementById('history-detail-panel');
@@ -1915,8 +2012,8 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyPanel.classList.add('hidden');
             detailPanel.classList.remove('hidden');
 
-            const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
-            
+            const timeStr = `${rec.year}-${String(rec.month).padStart(2, '0')}-${String(rec.day).padStart(2, '0')} ${String(rec.hour).padStart(2, '0')}:${String(rec.minute).padStart(2, '0')}:${String(rec.second).padStart(2, '0')}`;
+
             // Populate Image
             const imgEl = document.getElementById('detail-image');
             if (imgEl) {
@@ -2069,7 +2166,7 @@ window.initRecordDetailView = async () => {
     }
 
     try {
-        const timeStr = `${rec.year}-${String(rec.month).padStart(2,'0')}-${String(rec.day).padStart(2,'0')} ${String(rec.hour).padStart(2,'0')}:${String(rec.minute).padStart(2,'0')}:${String(rec.second).padStart(2,'0')}`;
+        const timeStr = `${rec.year}-${String(rec.month).padStart(2, '0')}-${String(rec.day).padStart(2, '0')} ${String(rec.hour).padStart(2, '0')}:${String(rec.minute).padStart(2, '0')}:${String(rec.second).padStart(2, '0')}`;
 
         // Helper for setting text
         const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
@@ -2148,7 +2245,7 @@ window.initRecordDetailView = async () => {
             } else {
                 screenshotsGrid.innerHTML = shots.map((shot, idx) => `
                     <div class="relative rounded-lg overflow-hidden border border-outline-variant/30 group cursor-pointer shrink-0 h-32 w-52 bg-black/60 shadow hover:border-primary transition-all">
-                        <img src="${shot.dataUrl}" alt="Screenshot ${idx+1}" class="w-full h-full object-cover">
+                        <img src="${shot.dataUrl}" alt="Screenshot ${idx + 1}" class="w-full h-full object-cover">
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5">
                             <div class="flex items-center justify-between font-label-mono text-[9px]">
                                 <span class="text-on-surface/90 font-bold">#${idx + 1}</span>
@@ -2237,6 +2334,11 @@ window.addEventListener('spa:view-loaded', (e) => {
 });
 
 // --- Settings Live Interactivity Logic ---
+// Dirty tracking for unsaved changes warning
+window.aegisSettingsDirty = false;
+window._aegisSettingsSnapshots = {};
+window._aegisPendingNavUrl = null;
+
 window.initSettingsUI = () => {
     const safeGet = (id) => {
         const el = document.getElementById(id);
@@ -2255,7 +2357,106 @@ window.initSettingsUI = () => {
         }
     };
 
-    // ── Real-time Visual Updates ─────────────────────
+    // ── Settings field IDs for each page ──
+    const GENERAL_FIELDS = ['setting-language', 'setting-theme-toggle', 'setting-retention-days', 'setting-save-path', 'setting-auto-connect'];
+    const CAMERA_FIELDS = ['cam-input-type', 'cam-rtsp-url', 'cam-flip', 'cam-mirror', 'cam-rotation', 'cam-brightness', 'cam-contrast', 'cam-saturation', 'cam-night-vision'];
+    const MODEL_FIELDS = ['model-conf-thresh', 'model-nms-thresh', 'model-inference-engine', 'model-batch-size', 'model-max-fps', 'model-inference-interval'];
+    const NOTIF_FIELDS = [
+        'notif-cam-connected', 'notif-cam-disconnected',
+        'notif-cam-failed', 'notif-cam-permission',
+        'notif-model-loaded', 'notif-model-added', 'notif-model-detected',
+        'notif-model-failed', 'notif-model-overloaded',
+        'notif-session-state', 'notif-screenshot-saved',
+        'notif-media-error',
+        'notif-export-success', 'notif-export-failed',
+        'notif-settings-saved', 'notif-settings-reverted', 'notif-printer-added', 'notif-roi-updated',
+        'notif-settings-failed', 'notif-settings-invalid'
+    ];
+    const ALL_FIELDS = [...GENERAL_FIELDS, ...CAMERA_FIELDS, ...MODEL_FIELDS, ...NOTIF_FIELDS];
+
+    // ── Factory Defaults / Revert ──
+    const FACTORY_DEFAULTS = {
+        'setting-language': 'en',
+        'setting-theme-toggle': true, // Dark mode default
+        'setting-retention-days': '30',
+        'setting-save-path': './records',
+        'setting-auto-connect': false,
+        'cam-input-type': 'usb',
+        'cam-rtsp-url': '',
+        'cam-flip': false,
+        'cam-mirror': false,
+        'cam-rotation': '0',
+        'cam-brightness': '100',
+        'cam-contrast': '100',
+        'cam-saturation': '100',
+        'cam-night-vision': false,
+        'model-conf-thresh': '60',
+        'model-nms-thresh': '45',
+        'model-inference-engine': 'cuda',
+        'model-batch-size': '1',
+        'model-max-fps': '30',
+        'model-inference-interval': '0',
+        'notif-cam-connected': true,
+        'notif-cam-disconnected': true,
+        'notif-cam-failed': true,
+        'notif-cam-permission': true,
+        'notif-model-loaded': true,
+        'notif-model-added': true,
+        'notif-model-detected': false,
+        'notif-model-failed': true,
+        'notif-model-overloaded': true,
+        'notif-session-state': true,
+        'notif-screenshot-saved': true,
+        'notif-media-error': true,
+        'notif-export-success': true,
+        'notif-export-failed': true,
+        'notif-settings-saved': true,
+        'notif-settings-reverted': true,
+        'notif-printer-added': true,
+        'notif-roi-updated': true,
+        'notif-settings-failed': true,
+        'notif-settings-invalid': true
+    };
+
+    const takeSnapshot = () => {
+        // No longer using snapshots, we use factory defaults for revert
+        window.aegisSettingsDirty = false;
+    };
+
+    const revertToFactoryDefaults = () => {
+        ALL_FIELDS.forEach(id => {
+            if (FACTORY_DEFAULTS[id] !== undefined) {
+                safeSet(id, FACTORY_DEFAULTS[id]);
+            }
+        });
+        window.aegisSettingsDirty = true; // Reverting to factory counts as an unsaved change until Applied
+        applyCameraVisuals();
+        applyTheme(FACTORY_DEFAULTS['setting-theme-toggle']);
+        if (window.termLog) window.termLog("Settings reverted to factory defaults. Please Apply to save.", "warning");
+    };
+
+    // Attach revert buttons
+    document.querySelectorAll('[id^="btn-revert"]').forEach(btn => {
+        btn.addEventListener('click', revertToFactoryDefaults);
+    });
+    // Also catch generic "Revert Changes" buttons without IDs
+    document.querySelectorAll('button').forEach(btn => {
+        if (btn.textContent.trim() === 'Revert Changes' && !btn.id) {
+            btn.addEventListener('click', revertToFactoryDefaults);
+        }
+    });
+
+    // ── Dirty tracking ──
+    ALL_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const markDirty = () => { window.aegisSettingsDirty = true; };
+            el.addEventListener('input', markDirty);
+            el.addEventListener('change', markDirty);
+        }
+    });
+
+    // ── Real-time Visual Updates ──
     const applyCameraVisuals = () => {
         const cameraVideo = document.getElementById('camera-video');
         const detectionCanvas = document.getElementById('detection-canvas');
@@ -2277,10 +2478,12 @@ window.initSettingsUI = () => {
             filterStr = `grayscale(100%) sepia(100%) hue-rotate(90deg) brightness(1.2) contrast(1.4)`;
         }
 
-        [cameraVideo, detectionCanvas].forEach(el => {
+        [cameraVideo, detectionCanvas, document.getElementById('pip-canvas'), document.getElementById('pip-video')].forEach(el => {
             if (el) {
                 el.style.transform = transformStr;
-                el.style.filter = filterStr;
+                if (el !== detectionCanvas) {
+                    el.style.filter = filterStr;
+                }
                 el.style.transition = 'transform 0.3s ease, filter 0.3s ease';
             }
         });
@@ -2326,30 +2529,189 @@ window.initSettingsUI = () => {
         }
     });
 
-    // ROI overlay setup
+    // ── ROI Modal ──
     const setRoiBtn = document.getElementById('cam-set-roi');
-    if (setRoiBtn) {
-        setRoiBtn.addEventListener('click', () => {
-            const videoContainer = document.getElementById('camera-video')?.parentElement;
-            if (!videoContainer) return;
+    const roiModal = document.getElementById('roi-modal');
+    const roiBgCanvas = document.getElementById('roi-bg-canvas');
+    const roiDrawCanvas = document.getElementById('roi-draw-canvas');
+    const roiCoords = document.getElementById('roi-coords');
+    const roiCancelBtn = document.getElementById('roi-cancel-btn');
+    const roiClearBtn = document.getElementById('roi-clear-btn');
+    const roiConfirmBtn = document.getElementById('roi-confirm-btn');
 
-            let roiOverlay = document.getElementById('roi-overlay-box');
-            if (roiOverlay) {
-                roiOverlay.remove();
-                if (window.termLog) window.termLog("Region of Interest (ROI) zone disabled.", "warning");
-            } else {
-                roiOverlay = document.createElement('div');
-                roiOverlay.id = 'roi-overlay-box';
-                roiOverlay.className = "absolute border-2 border-dashed border-primary bg-primary/10 flex items-start p-2 pointer-events-none z-20 rounded-lg animate-pulse";
-                roiOverlay.style.cssText = "top: 20%; left: 20%; width: 60%; height: 60%;";
-                roiOverlay.innerHTML = `<span class="bg-primary text-on-primary font-label-mono text-xs px-2 py-1 rounded shadow-lg flex items-center gap-1"><span class="material-symbols-outlined text-sm">crop_free</span> ROI Active Detection Zone</span>`;
-                videoContainer.appendChild(roiOverlay);
-                if (window.termLog) window.termLog("Region of Interest (ROI) zone activated.", "success");
+    let roiStartX = 0, roiStartY = 0, roiEndX = 0, roiEndY = 0, roiDrawing = false;
+    let roiRect = null; // {x, y, w, h} in normalized [0,1]
+
+    if (setRoiBtn && roiModal) {
+        setRoiBtn.addEventListener('click', () => {
+            const cameraVideo = document.getElementById('camera-video');
+            if (!cameraVideo || cameraVideo.classList.contains('hidden')) {
+                if (window.termLog) window.termLog("ROI: Camera must be active to set ROI.", "error");
+                return;
+            }
+
+            // Snapshot camera frame onto background canvas
+            const container = document.getElementById('roi-canvas-container');
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+            roiBgCanvas.width = cw;
+            roiBgCanvas.height = ch;
+            roiDrawCanvas.width = cw;
+            roiDrawCanvas.height = ch;
+
+            const bgCtx = roiBgCanvas.getContext('2d');
+            bgCtx.drawImage(cameraVideo, 0, 0, cw, ch);
+
+            // Draw existing ROI if any
+            if (roiRect) {
+                const drawCtx = roiDrawCanvas.getContext('2d');
+                drawCtx.clearRect(0, 0, cw, ch);
+                const rx = roiRect.x * cw, ry = roiRect.y * ch, rw = roiRect.w * cw, rh = roiRect.h * ch;
+                drawCtx.strokeStyle = '#4b8eff';
+                drawCtx.lineWidth = 2;
+                drawCtx.setLineDash([6, 4]);
+                drawCtx.strokeRect(rx, ry, rw, rh);
+                drawCtx.fillStyle = 'rgba(75, 142, 255, 0.15)';
+                drawCtx.fillRect(rx, ry, rw, rh);
+                roiCoords.textContent = `X: ${Math.round(rx)}, Y: ${Math.round(ry)}, W: ${Math.round(rw)}, H: ${Math.round(rh)}`;
+            }
+
+            roiModal.classList.add('open');
+        });
+
+        // Drawing on canvas
+        roiDrawCanvas.addEventListener('mousedown', (e) => {
+            const rect = roiDrawCanvas.getBoundingClientRect();
+            roiStartX = e.clientX - rect.left;
+            roiStartY = e.clientY - rect.top;
+            roiDrawing = true;
+        });
+
+        roiDrawCanvas.addEventListener('mousemove', (e) => {
+            if (!roiDrawing) return;
+            const rect = roiDrawCanvas.getBoundingClientRect();
+            roiEndX = e.clientX - rect.left;
+            roiEndY = e.clientY - rect.top;
+
+            const ctx = roiDrawCanvas.getContext('2d');
+            ctx.clearRect(0, 0, roiDrawCanvas.width, roiDrawCanvas.height);
+
+            const x = Math.min(roiStartX, roiEndX);
+            const y = Math.min(roiStartY, roiEndY);
+            const w = Math.abs(roiEndX - roiStartX);
+            const h = Math.abs(roiEndY - roiStartY);
+
+            // Dim outside ROI
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(0, 0, roiDrawCanvas.width, roiDrawCanvas.height);
+            ctx.clearRect(x, y, w, h);
+
+            ctx.strokeStyle = '#4b8eff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.strokeRect(x, y, w, h);
+            ctx.fillStyle = 'rgba(75, 142, 255, 0.1)';
+            ctx.fillRect(x, y, w, h);
+
+            roiCoords.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}, W: ${Math.round(w)}, H: ${Math.round(h)}`;
+        });
+
+        roiDrawCanvas.addEventListener('mouseup', () => {
+            roiDrawing = false;
+        });
+
+        roiCancelBtn.addEventListener('click', () => {
+            roiModal.classList.remove('open');
+        });
+
+        roiModal.querySelector('.roi-modal-backdrop').addEventListener('click', () => {
+            roiModal.classList.remove('open');
+        });
+
+        roiClearBtn.addEventListener('click', () => {
+            const ctx = roiDrawCanvas.getContext('2d');
+            ctx.clearRect(0, 0, roiDrawCanvas.width, roiDrawCanvas.height);
+            roiRect = null;
+            roiCoords.textContent = 'X: 0, Y: 0, W: 0, H: 0';
+
+            if (window.termLog) window.termLog("ROI: Region of Interest cleared.", "warning");
+        });
+
+        roiConfirmBtn.addEventListener('click', () => {
+            const cw = roiDrawCanvas.width;
+            const ch = roiDrawCanvas.height;
+            const x = Math.min(roiStartX, roiEndX) / cw;
+            const y = Math.min(roiStartY, roiEndY) / ch;
+            const w = Math.abs(roiEndX - roiStartX) / cw;
+            const h = Math.abs(roiEndY - roiStartY) / ch;
+
+            if (w < 0.02 || h < 0.02) {
+                if (window.termLog) window.termLog("ROI: Selection too small. Please drag a larger area.", "error");
+                return;
+            }
+
+            roiRect = { x, y, w, h };
+            roiModal.classList.remove('open');
+
+            if (window.termLog) window.termLog(`ROI: Region set to (${(x * 100).toFixed(1)}%, ${(y * 100).toFixed(1)}%, ${(w * 100).toFixed(1)}%, ${(h * 100).toFixed(1)}%)`, "success");
+        });
+    }
+
+    // ── Target Objects ──
+    window.aegisTargetObjects = [];
+
+    const renderTargetObjects = () => {
+        const listEl = document.getElementById('target-objects-list');
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        if (window.aegisTargetObjects.length === 0) {
+            listEl.innerHTML = '<span class="text-outline-variant font-label-mono text-[13px] self-center">No targets specified. All objects will be detected.</span>';
+        } else {
+            window.aegisTargetObjects.forEach((obj, idx) => {
+                const badge = document.createElement('div');
+                badge.className = 'flex items-center gap-1 bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full font-label-mono text-[12px]';
+                badge.innerHTML = `
+                    <span>${obj}</span>
+                    <button class="hover:text-on-surface transition-colors leading-none" data-idx="${idx}">&times;</button>
+                `;
+                badge.querySelector('button').addEventListener('click', () => {
+                    window.aegisTargetObjects.splice(idx, 1);
+                    window.aegisSettingsDirty = true;
+                    renderTargetObjects();
+                });
+                listEl.appendChild(badge);
+            });
+        }
+    };
+
+    const targetInput = document.getElementById('target-object-input');
+    const targetAddBtn = document.getElementById('btn-add-target-object');
+
+    const addTargetObject = () => {
+        if (!targetInput) return;
+        const val = targetInput.value.trim().toLowerCase();
+        if (val && !window.aegisTargetObjects.includes(val)) {
+            window.aegisTargetObjects.push(val);
+            window.aegisSettingsDirty = true;
+            renderTargetObjects();
+        }
+        targetInput.value = '';
+    };
+
+    if (targetAddBtn) {
+        targetAddBtn.addEventListener('click', addTargetObject);
+    }
+    if (targetInput) {
+        targetInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTargetObject();
             }
         });
     }
 
-    // Load Settings
+    // ── Load Settings ──
     const loadSettings = () => {
         try {
             const genConfig = JSON.parse(localStorage.getItem('aegis_settings_general'));
@@ -2394,38 +2756,71 @@ window.initSettingsUI = () => {
                 safeSet('model-inference-engine', modelConfig.inferenceEngine);
                 safeSet('model-batch-size', modelConfig.batchSize);
                 safeSet('model-max-fps', modelConfig.maxFps);
+                safeSet('model-inference-interval', modelConfig.inferenceInterval || '0');
+
+                window.aegisTargetObjects = modelConfig.targetObjects || [];
+                renderTargetObjects();
+
+                // Initial sync with backend
+                fetch('http://localhost:8000/api/settings/model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        confThresh: parseFloat(modelConfig.confThresh) || 60,
+                        nmsThresh: parseFloat(modelConfig.nmsThresh) || 45,
+                        inferenceEngine: modelConfig.inferenceEngine || 'cuda',
+                        inferenceInterval: parseFloat(modelConfig.inferenceInterval) || 0,
+                        targetObjects: window.aegisTargetObjects
+                    })
+                }).catch(e => console.warn("Could not sync model params on startup:", e));
             }
 
-            const alertConfig = JSON.parse(localStorage.getItem('aegis_settings_alert'));
-            if (alertConfig) {
-                safeSet('alert-target-person', alertConfig.targetPerson);
-                safeSet('alert-target-car', alertConfig.targetCar);
-                safeSet('alert-target-truck', alertConfig.targetTruck);
-                safeSet('alert-target-animal', alertConfig.targetAnimal);
-                safeSet('alert-target-unrecognized', alertConfig.targetUnrecognized);
-                safeSet('alert-threat-thresh', alertConfig.threatThresh);
-                safeSet('alert-auto-screen', alertConfig.autoScreen);
-                safeSet('alert-auto-record', alertConfig.autoRecord);
-                safeSet('alert-cooldown', alertConfig.cooldown);
+            const notifConfig = JSON.parse(localStorage.getItem('aegis_settings_notif'));
+            if (notifConfig) {
+                NOTIF_FIELDS.forEach(field => {
+                    if (notifConfig[field] !== undefined) {
+                        safeSet(field, notifConfig[field]);
+                    }
+                });
             }
         } catch (e) {
             console.error("Error loading settings", e);
         }
     };
 
-    // Save Handlers
+    // ── Save Handlers ──
+    const clearDirty = () => {
+        window.aegisSettingsDirty = false;
+        takeSnapshot();
+    };
+
     const btnApplyGeneral = document.getElementById('btn-apply-general');
     if (btnApplyGeneral) {
-        btnApplyGeneral.addEventListener('click', () => {
+        btnApplyGeneral.addEventListener('click', async () => {
+            const savePath = safeGet('setting-save-path');
             const config = {
                 language: safeGet('setting-language'),
                 themeDark: safeGet('setting-theme-toggle'),
                 retentionDays: safeGet('setting-retention-days'),
-                savePath: safeGet('setting-save-path'),
+                retentionStartDate: Date.now(),
+                savePath: savePath,
                 autoConnect: safeGet('setting-auto-connect')
             };
             localStorage.setItem('aegis_settings_general', JSON.stringify(config));
             applyTheme(config.themeDark);
+            clearDirty();
+
+            // Notify backend to create folder if it doesn't exist
+            try {
+                await fetch('http://localhost:8000/api/settings/save-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: savePath })
+                });
+            } catch (e) {
+                console.warn("Could not reach backend to create save path:", e);
+            }
+
             if (window.termLog) window.termLog("General settings applied & saved successfully.", "success");
         });
     }
@@ -2446,49 +2841,246 @@ window.initSettingsUI = () => {
             };
             localStorage.setItem('aegis_settings_camera', JSON.stringify(config));
             applyCameraVisuals();
+            clearDirty();
             if (window.termLog) window.termLog("Camera video transformations applied.", "success");
         });
     }
 
     const btnApplyModel = document.getElementById('btn-apply-model');
     if (btnApplyModel) {
-        btnApplyModel.addEventListener('click', () => {
+        btnApplyModel.addEventListener('click', async () => {
             const config = {
                 confThresh: safeGet('model-conf-thresh'),
                 nmsThresh: safeGet('model-nms-thresh'),
                 inferenceEngine: safeGet('model-inference-engine'),
                 batchSize: safeGet('model-batch-size'),
-                maxFps: safeGet('model-max-fps')
+                maxFps: safeGet('model-max-fps'),
+                inferenceInterval: safeGet('model-inference-interval') || '0',
+                targetObjects: window.aegisTargetObjects || []
             };
             localStorage.setItem('aegis_settings_model', JSON.stringify(config));
+            clearDirty();
             if (window.termLog) window.termLog(`Model parameters updated. Engine: ${config.inferenceEngine.toUpperCase()}, Confidence: ${config.confThresh}%`, "success");
+
+            // Apply FPS dynamically if camera is running
+            const cameraVideo = document.getElementById('camera-video');
+            if (cameraVideo && cameraVideo.srcObject) {
+                const track = cameraVideo.srcObject.getVideoTracks()[0];
+                if (track) {
+                    const maxFps = parseInt(config.maxFps);
+                    const constraints = maxFps > 0 ? { frameRate: { ideal: maxFps, max: maxFps } } : {};
+                    track.applyConstraints(constraints).then(() => {
+                        const newSettings = track.getSettings();
+                        if (window.termLog) window.termLog(`Camera FPS adjusted. Current frameRate: ${newSettings.frameRate || 'Default'}`);
+                        const feedStats = document.getElementById('feed-stats');
+                        if (feedStats) feedStats.innerHTML = `FPS: ${newSettings.frameRate || '--'} <br> RES: ${newSettings.width || '--'}x${newSettings.height || '--'}`;
+                    }).catch(e => {
+                        console.warn("Could not apply frameRate constraint dynamically:", e);
+                    });
+                }
+            }
+
+            // Apply inference interval dynamically
+            window.aegisModelInterval = parseFloat(config.inferenceInterval) || 0;
+
+            // Sync with backend model inference settings
+            try {
+                await fetch('http://localhost:8000/api/settings/model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        confThresh: parseFloat(config.confThresh) || 60,
+                        nmsThresh: parseFloat(config.nmsThresh) || 45,
+                        inferenceEngine: config.inferenceEngine || 'cuda',
+                        inferenceInterval: parseFloat(config.inferenceInterval) || 0,
+                        targetObjects: config.targetObjects
+                    })
+                });
+                if (window.termLog) window.termLog("Backend inference parameters synced successfully.", "success");
+            } catch (e) {
+                console.warn("Could not sync model parameters with backend:", e);
+                if (window.termLog) window.termLog("Warning: Could not reach backend to sync model parameters.", "warning");
+            }
         });
     }
 
     const btnApplyAlert = document.getElementById('btn-apply-alert');
     if (btnApplyAlert) {
         btnApplyAlert.addEventListener('click', () => {
-            const config = {
-                targetPerson: safeGet('alert-target-person'),
-                targetCar: safeGet('alert-target-car'),
-                targetTruck: safeGet('alert-target-truck'),
-                targetAnimal: safeGet('alert-target-animal'),
-                targetUnrecognized: safeGet('alert-target-unrecognized'),
-                threatThresh: safeGet('alert-threat-thresh'),
-                autoScreen: safeGet('alert-auto-screen'),
-                autoRecord: safeGet('alert-auto-record'),
-                cooldown: safeGet('alert-cooldown')
-            };
-            localStorage.setItem('aegis_settings_alert', JSON.stringify(config));
-            if (window.termLog) window.termLog("Alert detection rules updated.", "success");
+            const config = {};
+            NOTIF_FIELDS.forEach(field => {
+                config[field] = safeGet(field);
+            });
+            localStorage.setItem('aegis_settings_notif', JSON.stringify(config));
+            clearDirty();
+            if (window.termLog) window.termLog("Notification preferences updated.", "success");
+            
+            // Check settings events toggle
+            if (config['notif-settings-saved']) {
+            }
+        });
+    }
+
+    const btnRevertAlert = document.getElementById('btn-revert-alert');
+    if (btnRevertAlert) {
+        btnRevertAlert.addEventListener('click', () => {
+            NOTIF_FIELDS.forEach(field => revertField(field));
+            clearDirty();
+            
+            const config = JSON.parse(localStorage.getItem('aegis_settings_notif') || '{}');
+            if (config['notif-settings-reverted'] !== false && config['notif-settings-reverted'] !== 'false') {
+            }
         });
     }
 
     loadSettings();
+    takeSnapshot(); // Save initial snapshot for revert
+};
+
+// ── Camera PiP Logic ──
+window._pipManuallyClosed = false;
+
+window.initCameraPiP = () => {
+    const pipEl = document.getElementById('camera-pip');
+    const pipVideo = document.getElementById('pip-video');
+    const pipCanvas = document.getElementById('pip-canvas');
+    const pipCloseBtn = document.getElementById('pip-close-btn');
+    const pipExpandBtn = document.getElementById('pip-expand-btn');
+    if (!pipEl || !pipVideo || !pipCanvas) return;
+
+    // PiP drag & snap support
+    let isDragging = false, dragOffsetX = 0, dragOffsetY = 0;
+    pipEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.pip-close') || e.target.closest('.pip-expand')) return;
+        isDragging = true;
+        dragOffsetX = e.clientX - pipEl.getBoundingClientRect().left;
+        dragOffsetY = e.clientY - pipEl.getBoundingClientRect().top;
+        pipEl.style.transition = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let newLeft = e.clientX - dragOffsetX;
+        let newTop = e.clientY - dragOffsetY;
+        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - pipEl.offsetWidth));
+        newTop = Math.max(0, Math.min(newTop, window.innerHeight - pipEl.offsetHeight));
+        pipEl.style.left = newLeft + 'px';
+        pipEl.style.top = newTop + 'px';
+        pipEl.style.right = 'auto';
+        pipEl.style.bottom = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            pipEl.style.transition = 'left 0.3s ease, top 0.3s ease';
+
+            // Snap to nearest edge logic
+            const pRect = pipEl.getBoundingClientRect();
+            const relLeft = pRect.left;
+            const relTop = pRect.top;
+
+            const distLeft = relLeft;
+            const distRight = window.innerWidth - (relLeft + pRect.width);
+            const distTop = relTop;
+            const distBottom = window.innerHeight - (relTop + pRect.height);
+
+            const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+            const SNAP_MARGIN = 24;
+
+            if (minDist === distLeft) {
+                pipEl.style.left = SNAP_MARGIN + 'px';
+            } else if (minDist === distRight) {
+                pipEl.style.left = (window.innerWidth - pRect.width - SNAP_MARGIN) + 'px';
+            } else if (minDist === distTop) {
+                pipEl.style.top = SNAP_MARGIN + 'px';
+            } else {
+                pipEl.style.top = (window.innerHeight - pRect.height - SNAP_MARGIN) + 'px';
+            }
+        }
+    });
+
+    // Close PiP
+    pipCloseBtn.addEventListener('click', () => {
+        window._pipManuallyClosed = true;
+        pipEl.classList.add('hidden');
+    });
+
+    // Expand = navigate to home
+    pipExpandBtn.addEventListener('click', () => {
+        document.getElementById('nav-home')?.click();
+    });
+
+    // Show/hide PiP based on current view
+    const updatePiPVisibility = (viewId) => {
+        const cameraVideo = document.getElementById('camera-video');
+        if (viewId === 'view-home') {
+            window._pipManuallyClosed = false; // Reset close state when returning to home
+            pipEl.classList.add('hidden');
+            pipVideo.srcObject = null;
+        } else {
+            if (!window._pipManuallyClosed && cameraVideo && cameraVideo.srcObject) {
+                pipVideo.srcObject = cameraVideo.srcObject;
+                pipEl.classList.remove('hidden');
+            } else {
+                pipEl.classList.add('hidden');
+                pipVideo.srcObject = null;
+            }
+        }
+    };
+
+    window.addEventListener('spa:view-loaded', (e) => {
+        updatePiPVisibility(e.detail.viewId);
+    });
+
+    // PiP rendering loop
+    const pipCtx = pipCanvas.getContext('2d');
+    const drawPiP = () => {
+        if (!pipEl.classList.contains('hidden')) {
+            const cameraVideo = document.getElementById('camera-video');
+            const detectionCanvas = document.getElementById('detection-canvas');
+
+            if (cameraVideo && cameraVideo.videoWidth) {
+                pipCanvas.width = cameraVideo.videoWidth;
+                pipCanvas.height = cameraVideo.videoHeight;
+
+                pipCtx.clearRect(0, 0, pipCanvas.width, pipCanvas.height);
+
+                if (detectionCanvas && detectionCanvas.width > 0) {
+                    pipCtx.drawImage(detectionCanvas, 0, 0, pipCanvas.width, pipCanvas.height);
+                }
+            }
+        }
+        requestAnimationFrame(drawPiP);
+    };
+    requestAnimationFrame(drawPiP);
+};
+
+// ── Unsaved Changes Warning Logic ──
+window.initUnsavedWarning = () => {
+    const modal = document.getElementById('unsaved-modal');
+    const stayBtn = document.getElementById('unsaved-stay-btn');
+    const leaveBtn = document.getElementById('unsaved-leave-btn');
+    if (!modal || !stayBtn || !leaveBtn) return;
+
+    stayBtn.addEventListener('click', () => {
+        modal.classList.remove('open');
+        window._aegisPendingNavUrl = null;
+    });
+
+    leaveBtn.addEventListener('click', () => {
+        modal.classList.remove('open');
+        window.aegisSettingsDirty = false;
+        const url = window._aegisPendingNavUrl;
+        window._aegisPendingNavUrl = null;
+        if (url && window.spaLoadRoute) {
+            window.spaLoadRoute(url);
+        }
+    });
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.initSettingsUI) {
-        window.initSettingsUI();
-    }
+    if (window.initSettingsUI) window.initSettingsUI();
+    if (window.initCameraPiP) window.initCameraPiP();
+    if (window.initUnsavedWarning) window.initUnsavedWarning();
 });
