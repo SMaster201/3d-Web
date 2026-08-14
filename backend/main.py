@@ -27,6 +27,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "service": "aegis-backend"}
+
 # Load YOLO model (downloads standard yolov8n if not present)
 model = YOLO("yolov8n.pt")
 
@@ -186,4 +191,4 @@ async def websocket_inference(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

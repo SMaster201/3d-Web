@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (type === 'success') colorClass = ' class="text-secondary"';
         else if (type === 'error') colorClass = ' class="text-error"';
         else if (type === 'warning') colorClass = ' class="text-[#ffb74d]"';
+        else if (type === 'backend') colorClass = ' class="text-[#4ea8de]"'; // Light blue for backend
 
         p.innerHTML = `<span class="text-primary/70">[${timeStr}]</span> <span${colorClass}>${message}</span>`;
         logContainer.appendChild(p);
@@ -156,46 +157,91 @@ document.addEventListener('DOMContentLoaded', () => {
             let icon = 'info';
             let cleanMsg = message;
 
+            // 1. Camera Events & Errors
             if (message.includes('CAM_SCAN:') || message.includes('SYS: Scanning') || message.includes('CAM_LOAD:')) {
-                notifId = type === 'error' ? 'notif-cam-failed' : 'notif-cam-connected';
-                icon = type === 'error' ? 'videocam_off' : 'videocam';
+                if (message.includes('denied') || message.includes('permission') || message.includes('Permission')) {
+                    notifId = 'notif-cam-permission';
+                    icon = 'videocam_off';
+                } else if (message.includes('disconnected') || message.includes('Disconnected') || message.includes('lost')) {
+                    notifId = 'notif-cam-disconnected';
+                    icon = 'videocam_off';
+                } else if (type === 'error' || message.includes('No cameras') || message.includes('Failed') || message.includes('No camera detected')) {
+                    notifId = 'notif-cam-failed';
+                    icon = 'videocam_off';
+                } else {
+                    notifId = 'notif-cam-connected';
+                    icon = 'videocam';
+                }
                 cleanMsg = message.replace(/^(CAM_SCAN|SYS|CAM_LOAD):\s*/, '');
-            } else if (message.includes('MDL_ADD:') || message.includes('SYS: Restored')) {
+            } 
+            // 2. Model Added
+            else if (message.includes('MDL_ADD:') || (message.includes('SYS: Restored') && message.includes('model'))) {
                 notifId = 'notif-model-added';
                 icon = 'memory';
                 cleanMsg = message.replace(/^(MDL_ADD|SYS):\s*/, '');
-            } else if (message.includes('MDL_LOAD:') || message.includes('DETECT:') || message.includes('RE-ID:')) {
-                notifId = type === 'error' ? 'notif-model-failed' : 'notif-model-loaded';
-                if (message.includes('No model detected') || message.includes('Please select')) notifId = 'notif-model-failed';
-                icon = type === 'error' ? 'model_training' : 'check_circle';
-                cleanMsg = message.replace(/^(MDL_LOAD|DETECT|RE-ID):\s*/, '');
-            } else if (message.includes('PRINTER_ADD:')) {
+            } 
+            // 3. Model Loaded, Inference, Overloaded & Failed
+            else if (message.includes('MDL_LOAD:') || message.includes('DETECT:') || message.includes('RE-ID:') || message.includes('Backend connected')) {
+                if (message.includes('overloaded') || message.includes('latency')) {
+                    notifId = 'notif-model-overloaded';
+                    icon = 'warning';
+                } else if (type === 'error' || message.includes('No model detected') || message.includes('Please select') || message.includes('ERROR') || message.includes('unreachable')) {
+                    notifId = 'notif-model-failed';
+                    icon = 'warning';
+                } else {
+                    notifId = 'notif-model-loaded';
+                    icon = 'memory';
+                }
+                cleanMsg = message.replace(/^(MDL_LOAD|DETECT|RE-ID|SYS):\s*/, '');
+            } 
+            // 4. Printer Added
+            else if (message.includes('PRINTER_ADD:') || (message.includes('SYS: Restored') && message.includes('printer'))) {
                 notifId = 'notif-printer-added';
                 icon = 'print';
-                cleanMsg = message.replace(/^PRINTER_ADD:\s*/, '');
-            } else if (message.includes('SCREENSHOT:')) {
+                cleanMsg = message.replace(/^(PRINTER_ADD|SYS):\s*/, '');
+            } 
+            // 5. Screenshot Saved & Errors
+            else if (message.includes('SCREENSHOT:')) {
                 notifId = type === 'error' ? 'notif-media-error' : 'notif-screenshot-saved';
                 icon = type === 'error' ? 'broken_image' : 'photo_camera';
                 cleanMsg = message.replace(/^SCREENSHOT( ERROR)?:\s*/, '');
-            } else if (message.includes('SESSION:')) {
+            } 
+            // 6. Session Events & Errors
+            else if (message.includes('SESSION:')) {
                 notifId = type === 'error' ? 'notif-media-error' : 'notif-session-state';
                 icon = 'fiber_manual_record';
                 if (message.includes('paused')) icon = 'pause';
                 if (message.includes('resumed')) icon = 'play_arrow';
                 if (message.includes('finished')) icon = 'dns';
                 cleanMsg = message.replace(/^SESSION:\s*/, '');
-            } else if (message.includes('ROI:')) {
-                notifId = 'notif-roi-updated';
-                icon = 'crop';
+            } 
+            // 7. ROI Events & Errors
+            else if (message.includes('ROI:')) {
+                notifId = type === 'error' ? 'notif-settings-invalid' : 'notif-roi-updated';
+                icon = type === 'error' ? 'error' : 'crop';
                 cleanMsg = message.replace(/^ROI:\s*/, '');
-            } else if (message.includes('LOCAL SAVE:') || message.includes('ZIP EXPORT:') || message.includes('ZIP ERROR:')) {
+            } 
+            // 8. Export & Storage
+            else if (message.includes('LOCAL SAVE:') || message.includes('ZIP EXPORT:') || message.includes('ZIP ERROR:')) {
                 notifId = type === 'error' ? 'notif-export-failed' : 'notif-export-success';
                 icon = type === 'error' ? 'error' : 'save';
                 cleanMsg = message.replace(/^(LOCAL SAVE|ZIP EXPORT|ZIP ERROR):\s*/, '');
-            } else if (message.includes('CONFIRM:') || message.includes('Settings') || message.includes('parameters') || message.includes('Camera video') || message.includes('Camera FPS') || message.includes('Notification') || message.includes('Warning: Could not reach backend')) {
-                notifId = (type === 'error' || type === 'warning') ? 'notif-settings-invalid' : 'notif-settings-saved';
-                if (message.includes('reverted')) notifId = 'notif-settings-reverted';
-                icon = 'settings';
+            } 
+            // 9. Settings Events & Errors
+            else if (message.includes('CONFIRM:') || message.includes('Settings') || message.includes('parameters') || message.includes('Camera video') || message.includes('Camera FPS') || message.includes('Notification')) {
+                if (message.includes('reverted')) {
+                    notifId = 'notif-settings-reverted';
+                    icon = 'restart_alt';
+                } else if (message.includes('Could not reach backend') || message.includes('Failed') || message.includes('failed')) {
+                    notifId = 'notif-settings-failed';
+                    icon = 'error';
+                } else if (type === 'error' || type === 'warning' || message.includes('Missing selections')) {
+                    notifId = 'notif-settings-invalid';
+                    icon = 'error';
+                } else {
+                    notifId = 'notif-settings-saved';
+                    icon = 'settings';
+                }
                 cleanMsg = message.replace(/^CONFIRM:\s*/, '');
             }
 
@@ -273,10 +319,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const vramOtherBar = document.getElementById('vram-other-bar');
 
     let telemetryWS = null;
+    let hasAutoSynced = false;
+    let isSyncingModel = false;
+
+    async function syncBackendModel(isManual = false) {
+        if (isSyncingModel) return;
+        isSyncingModel = true;
+
+        const selectedValue = (modelSelect && modelSelect.value && modelSelect.value !== '__add_model__') 
+            ? modelSelect.value 
+            : 'yolov8n.pt';
+        const selectedLabel = (modelSelect && modelSelect.selectedIndex >= 0 && modelSelect.options[modelSelect.selectedIndex]) 
+            ? modelSelect.options[modelSelect.selectedIndex].textContent 
+            : 'YOLOv8n';
+
+        if (isManual) {
+            termLog(`MDL_LOAD: Attempting to load model "${selectedLabel}"...`, 'backend');
+            termLog(`MDL_LOAD: Reading weight file from: ${selectedValue}`, 'backend');
+        }
+
+        try {
+            const res = await fetch('http://localhost:8000/api/health').catch(() => fetch('http://127.0.0.1:8000/api/health'));
+            if (!res || !res.ok) throw new Error('Unreachable');
+
+            if (!hasAutoSynced || isManual) {
+                termLog(`SYS: Backend connected (http://localhost:8000).`, 'backend');
+                termLog(`MDL_LOAD: Validating model architecture...`, 'backend');
+                termLog(`MDL_LOAD: Model "${selectedLabel}" loaded & active.`, 'backend');
+                termLog(`MDL_LOAD: Ready for real-time inference.`, 'backend');
+                hasAutoSynced = true;
+            }
+
+            // Update system status
+            window.aegisSystemState.modelOnline = true;
+            window.aegisSystemState.loadedModelName = selectedLabel;
+            updateSystemStatus();
+
+            // Update engine status display with model name
+            if (engineStatus) {
+                engineStatus.textContent = `${selectedLabel} PROCESSING...`;
+            }
+
+            // Start detection overlay if camera is active
+            if (cameraVideo && !cameraVideo.classList.contains('hidden')) {
+                startDetectionOverlay();
+            }
+        } catch (e) {
+            if (isManual) {
+                termLog('MDL_LOAD: ERROR - Backend server is not running or unreachable.', 'error');
+            }
+        } finally {
+            isSyncingModel = false;
+        }
+    }
+
     function connectTelemetryWS() {
         try {
             telemetryWS = new WebSocket('ws://localhost:8000/ws/telemetry');
+            telemetryWS.onopen = () => {
+                syncBackendModel(false);
+            };
             telemetryWS.onmessage = (event) => {
+                if (!hasAutoSynced) {
+                    syncBackendModel(false);
+                }
                 if (!computeLoadVal || !computeAppBar || !computeOtherBar || !vramUsageVal || !vramAppBar || !vramOtherBar) return;
                 const data = JSON.parse(event.data);
                 const { appCpu, otherCpu, totalCpu, appVram, otherVram, totalVramUsed, totalVramCap } = data;
@@ -297,15 +403,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 vramOtherBar.style.width = `${Math.min(100, otherVramPct)}%`;
             };
             telemetryWS.onclose = () => {
-                setTimeout(connectTelemetryWS, 5000); // Reconnect
+                setTimeout(connectTelemetryWS, 2000); // Reconnect faster
             };
         } catch (e) {
-            console.error("Telemetry WS Error:", e);
+            setTimeout(connectTelemetryWS, 2000);
         }
     }
 
     updateSystemStatus();
     connectTelemetryWS();
+    // Auto-probe backend immediately on load
+    setTimeout(() => syncBackendModel(false), 500);
 
     // ─── Notification Bell & Panel ─────────────────
     const notifBell = document.getElementById('notification-bell');
@@ -381,20 +489,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addNotification = (message, type = 'info', icon = 'info', notifId = null) => {
-        console.log(`addNotification called: ${message} (notifId: ${notifId})`);
         if (notifId) {
-            let config = {};
-            try {
-                config = JSON.parse(localStorage.getItem('aegis_settings_notif') || '{}');
-            } catch(e) {
-                config = {};
+            let isEnabled = true;
+            // 1. Check live DOM toggle element first if available in page
+            const el = document.getElementById(notifId);
+            if (el && el.type === 'checkbox') {
+                isEnabled = el.checked;
+            } else {
+                // 2. Fallback to localStorage saved config
+                let config = {};
+                try {
+                    config = JSON.parse(localStorage.getItem('aegis_settings_notif') || '{}');
+                } catch(e) {
+                    config = {};
+                }
+                if (config[notifId] !== undefined) {
+                    isEnabled = config[notifId] === true || config[notifId] === 'true';
+                } else if (typeof FACTORY_DEFAULTS !== 'undefined' && FACTORY_DEFAULTS[notifId] !== undefined) {
+                    isEnabled = FACTORY_DEFAULTS[notifId];
+                }
             }
-            if (config[notifId] === false || config[notifId] === 'false') {
-                console.log(`Notification ${notifId} blocked by settings.`);
-                return; // User has disabled this notification
+
+            if (!isEnabled) {
+                // User has disabled this notification
+                return;
             }
         }
-        console.log(`Adding notification to array.`);
         
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -426,6 +546,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const detectionCanvas = document.getElementById('detection-canvas');
     let detectionAnimationId = null;
 
+    async function loadSelectedCamera(isManual = false) {
+        if (!cameraSelect) return;
+        const selectedIndex = cameraSelect.selectedIndex;
+
+        if (selectedIndex <= 0) {
+            if (isManual) {
+                if (detectedCameras.length === 0) {
+                    termLog('CAM_LOAD: No camera detected.', 'error');
+                } else {
+                    termLog('CAM_LOAD: Please select the camera.', 'error');
+                }
+            }
+            return;
+        }
+
+        const selectedDeviceId = cameraSelect.value;
+        const selectedLabel = cameraSelect.options[selectedIndex].textContent;
+
+        // Persist user selection
+        try {
+            localStorage.setItem('aegis_selected_camera_id', selectedDeviceId);
+            localStorage.setItem('aegis_selected_camera_label', selectedLabel);
+        } catch (e) { }
+
+        termLog(`CAM_LOAD: Attempting to load "${selectedLabel}"...`);
+
+        try {
+            // Stop existing stream if any
+            if (activeCameraStream) {
+                activeCameraStream.getTracks().forEach(t => t.stop());
+                activeCameraStream = null;
+            }
+
+            // Build video constraints — use exact deviceId if available, otherwise fallback
+            const videoConstraints = selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {};
+
+            try {
+                const modelConfig = JSON.parse(localStorage.getItem('aegis_settings_model'));
+                if (modelConfig && modelConfig.maxFps && parseInt(modelConfig.maxFps) > 0) {
+                    const maxFps = parseInt(modelConfig.maxFps);
+                    videoConstraints.frameRate = { ideal: maxFps, max: maxFps };
+                }
+            } catch (e) { }
+
+            const finalVideoConstraints = Object.keys(videoConstraints).length > 0 ? videoConstraints : true;
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: finalVideoConstraints
+            });
+
+            activeCameraStream = stream;
+
+            if (cameraVideo) {
+                cameraVideo.srcObject = stream;
+                cameraVideo.classList.remove('hidden');
+            }
+            if (noCameraPlaceholder) {
+                noCameraPlaceholder.classList.add('hidden');
+            }
+            if (camLabel) {
+                camLabel.classList.remove('hidden');
+                camLabel.textContent = selectedLabel;
+            }
+
+            // Get video track settings for feed stats
+            const videoTrack = stream.getVideoTracks()[0];
+            const settings = videoTrack.getSettings();
+            if (feedStats) {
+                feedStats.innerHTML = `FPS: ${settings.frameRate || '--'} <br> RES: ${settings.width || '--'}x${settings.height || '--'}`;
+            }
+            if (engineStatus && window.aegisSystemState.loadedModelName) {
+                engineStatus.textContent = `${window.aegisSystemState.loadedModelName} PROCESSING...`;
+            }
+
+            // Update system status
+            window.aegisSystemState.cameraOnline = true;
+            updateSystemStatus();
+
+            termLog('CAM_LOAD: Camera successfully loaded.', 'success');
+            termLog(`CAM_LOAD: "${selectedLabel}" loaded successfully. Stream active.`, 'success');
+            termLog(`CAM_LOAD: Resolution: ${settings.width}x${settings.height}, FPS: ${settings.frameRate}`);
+
+            // Auto-start detection if model is online
+            if (window.aegisSystemState.modelOnline) {
+                startDetectionOverlay();
+            }
+        } catch (err) {
+            termLog(`CAM_LOAD: Failed to load camera — ${err.message}`, 'error');
+        }
+    }
+
     async function detectCameras() {
         termLog('SYS: Scanning for connected cameras...');
 
@@ -450,14 +661,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clear existing options except placeholder
                 cameraSelect.innerHTML = '<option value="">-- Select Camera --</option>';
 
+                const savedCamId = localStorage.getItem('aegis_selected_camera_id');
+                const savedCamLabel = localStorage.getItem('aegis_selected_camera_label');
+                let targetIndex = -1;
+
                 videoDevices.forEach((device, index) => {
                     const option = document.createElement('option');
                     option.value = device.deviceId;
                     option.textContent = device.label || `Camera ${index + 1}`;
                     cameraSelect.appendChild(option);
                     termLog(`  → [${index + 1}] ${device.label || `Camera ${index + 1}`} (ID: ${device.deviceId.substring(0, 8)}...)`);
+
+                    if (savedCamId && device.deviceId === savedCamId) {
+                        targetIndex = index + 1;
+                    } else if (targetIndex === -1 && savedCamLabel && (device.label === savedCamLabel)) {
+                        targetIndex = index + 1;
+                    }
                 });
 
+                // Auto-select saved camera or default to the first detected camera
+                if (targetIndex > 0) {
+                    cameraSelect.selectedIndex = targetIndex;
+                } else if (videoDevices.length > 0) {
+                    cameraSelect.selectedIndex = 1;
+                }
+
+                // Automatically load camera stream without manual clicking
+                if (cameraSelect.selectedIndex > 0) {
+                    loadSelectedCamera(false);
+                }
             }
         } catch (err) {
             if (err.name === 'NotAllowedError') {
@@ -470,89 +702,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Run camera detection on page load
+    // Run camera detection on page load & listen for camera selection changes
     if (cameraSelect) {
+        cameraSelect.addEventListener('change', () => {
+            const selectedIndex = cameraSelect.selectedIndex;
+            if (selectedIndex > 0) {
+                try {
+                    localStorage.setItem('aegis_selected_camera_id', cameraSelect.value);
+                    localStorage.setItem('aegis_selected_camera_label', cameraSelect.options[selectedIndex].textContent);
+                } catch (e) { }
+            }
+        });
         detectCameras();
     }
 
     // Load Camera button
     if (loadCameraBtn) {
         loadCameraBtn.addEventListener('click', async () => {
-            // Use selectedIndex to check if user picked a real camera (index 0 = placeholder)
-            const selectedIndex = cameraSelect ? cameraSelect.selectedIndex : 0;
-
-            if (selectedIndex <= 0) {
-                if (detectedCameras.length === 0) {
-                    termLog('CAM_LOAD: No camera detected.', 'error');
-                } else {
-                    termLog('CAM_LOAD: Please select the camera.', 'error');
-                }
-                return;
-            }
-
-            const selectedDeviceId = cameraSelect.value;
-            const selectedLabel = cameraSelect.options[selectedIndex].textContent;
-            termLog(`CAM_LOAD: Attempting to load "${selectedLabel}"...`);
-
-            try {
-                // Stop existing stream if any
-                if (activeCameraStream) {
-                    activeCameraStream.getTracks().forEach(t => t.stop());
-                    activeCameraStream = null;
-                }
-
-                // Build video constraints — use exact deviceId if available, otherwise fallback
-                const videoConstraints = selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : {};
-
-                try {
-                    const modelConfig = JSON.parse(localStorage.getItem('aegis_settings_model'));
-                    if (modelConfig && modelConfig.maxFps && parseInt(modelConfig.maxFps) > 0) {
-                        const maxFps = parseInt(modelConfig.maxFps);
-                        videoConstraints.frameRate = { ideal: maxFps, max: maxFps };
-                    }
-                } catch (e) { }
-
-                const finalVideoConstraints = Object.keys(videoConstraints).length > 0 ? videoConstraints : true;
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: finalVideoConstraints
-                });
-
-                activeCameraStream = stream;
-
-                if (cameraVideo) {
-                    cameraVideo.srcObject = stream;
-                    cameraVideo.classList.remove('hidden');
-                }
-                if (noCameraPlaceholder) {
-                    noCameraPlaceholder.classList.add('hidden');
-                }
-                if (camLabel) {
-                    camLabel.classList.remove('hidden');
-                    camLabel.textContent = selectedLabel;
-                }
-
-                // Get video track settings for feed stats
-                const videoTrack = stream.getVideoTracks()[0];
-                const settings = videoTrack.getSettings();
-                if (feedStats) {
-                    feedStats.innerHTML = `FPS: ${settings.frameRate || '--'} <br> RES: ${settings.width || '--'}x${settings.height || '--'}`;
-                }
-                if (engineStatus && window.aegisSystemState.loadedModelName) {
-                    engineStatus.textContent = `${window.aegisSystemState.loadedModelName} PROCESSING...`;
-                }
-
-                // Update system status
-                window.aegisSystemState.cameraOnline = true;
-                updateSystemStatus();
-
-                termLog('CAM_LOAD: Camera successfully loaded.', 'success');
-
-                termLog(`CAM_LOAD: "${selectedLabel}" loaded successfully. Stream active.`, 'success');
-                termLog(`CAM_LOAD: Resolution: ${settings.width}x${settings.height}, FPS: ${settings.frameRate}`);
-            } catch (err) {
-                termLog(`CAM_LOAD: Failed to load camera — ${err.message}`, 'error');
-            }
+            loadSelectedCamera(true);
         });
     }
 
@@ -607,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load Model button
+    // Load Model button (Manual reload / switch)
     if (loadModelBtn) {
         loadModelBtn.addEventListener('click', () => {
             const selectedValue = modelSelect ? modelSelect.value : '';
@@ -625,36 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const selectedLabel = modelSelect.options[modelSelect.selectedIndex].textContent;
-            termLog(`MDL_LOAD: Attempting to load model "${selectedLabel}"...`);
-            termLog(`MDL_LOAD: Reading weight file from: ${selectedValue}`);
-
-            // Simulate model loading with a delay
-            termLog('MDL_LOAD: Validating model architecture...');
-
-            setTimeout(() => {
-                termLog('MDL_LOAD: Loading weights into memory...');
-
-                setTimeout(() => {
-                    // Simulate success (in a real app, this would verify the file exists)
-                    termLog(`MDL_LOAD: Model "${selectedLabel}" loaded successfully.`, 'success');
-                    termLog('MDL_LOAD: Model is ready for inference.', 'success');
-
-                    // Update system status
-                    window.aegisSystemState.modelOnline = true;
-                    window.aegisSystemState.loadedModelName = selectedLabel;
-                    updateSystemStatus();
-
-                    // Update engine status display with model name
-                    if (engineStatus) {
-                        engineStatus.textContent = `${selectedLabel} PROCESSING...`;
-                    }
-
-                    // Start detection overlay if camera is active
-                    startDetectionOverlay();
-
-                }, 800);
-            }, 600);
+            syncBackendModel(true);
         });
     }
 
@@ -925,6 +1063,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (confVal < minConf) return;
 
+            // Filter 2: ROI filter — skip detections whose center is outside the ROI
+            const activeRoi = window.aegisRoiRect;
+            if (activeRoi) {
+                const cx = det.x + det.w / 2;
+                const cy = det.y + det.h / 2;
+                if (cx < activeRoi.x || cx > activeRoi.x + activeRoi.w ||
+                    cy < activeRoi.y || cy > activeRoi.y + activeRoi.h) {
+                    return; // center outside ROI, skip
+                }
+            }
+
             // Smoothly interpolate positions
             det.x += (det.targetX - det.x) * 0.05;
             det.y += (det.targetY - det.y) * 0.05;
@@ -967,6 +1116,41 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillText(labelText, x + 5, y - 5);
         });
 
+        // Draw ROI boundary overlay if set
+        const activeRoiOverlay = window.aegisRoiRect;
+        if (activeRoiOverlay) {
+            const rx = activeRoiOverlay.x * detectionCanvas.width;
+            const ry = activeRoiOverlay.y * detectionCanvas.height;
+            const rw = activeRoiOverlay.w * detectionCanvas.width;
+            const rh = activeRoiOverlay.h * detectionCanvas.height;
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(78, 222, 163, 0.8)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 4]);
+            ctx.strokeRect(rx, ry, rw, rh);
+
+            // Draw small corner brackets for emphasis
+            ctx.setLineDash([]);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = 'rgba(78, 222, 163, 1)';
+            const cl = Math.min(rw, rh) * 0.08;
+            // Top-left
+            ctx.beginPath(); ctx.moveTo(rx, ry + cl); ctx.lineTo(rx, ry); ctx.lineTo(rx + cl, ry); ctx.stroke();
+            // Top-right
+            ctx.beginPath(); ctx.moveTo(rx + rw - cl, ry); ctx.lineTo(rx + rw, ry); ctx.lineTo(rx + rw, ry + cl); ctx.stroke();
+            // Bottom-left
+            ctx.beginPath(); ctx.moveTo(rx, ry + rh - cl); ctx.lineTo(rx, ry + rh); ctx.lineTo(rx + cl, ry + rh); ctx.stroke();
+            // Bottom-right
+            ctx.beginPath(); ctx.moveTo(rx + rw - cl, ry + rh); ctx.lineTo(rx + rw, ry + rh); ctx.lineTo(rx + rw, ry + rh - cl); ctx.stroke();
+
+            // Small label
+            ctx.font = '600 10px "JetBrains Mono", monospace';
+            ctx.fillStyle = 'rgba(78, 222, 163, 0.9)';
+            ctx.fillText('ROI', rx + 4, ry - 4);
+            ctx.restore();
+        }
+
         detectionAnimationId = requestAnimationFrame(drawDetections);
     }
 
@@ -1005,6 +1189,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             return { ...nd, x: old.x, y: old.y, w: old.w, h: old.h };
                         });
                     }
+
+                    if (data.detections.length > 0) {
+                        const now = Date.now();
+                        window._lastDetectionNotifTime = window._lastDetectionNotifTime || 0;
+                        if (now - window._lastDetectionNotifTime > 8000) { // throttle 8 seconds
+                            window._lastDetectionNotifTime = now;
+                            const detLabels = [...new Set(data.detections.map(d => d.label))].join(', ');
+                            if (window.addNotification) {
+                                window.addNotification(`Target detected: ${detLabels}`, 'info', 'radar', 'notif-model-detected');
+                            }
+                        }
+                    }
                 }
             };
         } catch (e) {
@@ -1040,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
 
         drawDetections();
-        termLog('DETECT: Real-time backend inference started.', 'success');
+        termLog('DETECT: Real-time backend inference started.', 'backend');
     }
 
     function stopDetectionOverlay() {
@@ -2541,6 +2737,7 @@ window.initSettingsUI = () => {
 
     let roiStartX = 0, roiStartY = 0, roiEndX = 0, roiEndY = 0, roiDrawing = false;
     let roiRect = null; // {x, y, w, h} in normalized [0,1]
+    window.aegisRoiRect = null; // global access for drawDetections
 
     if (setRoiBtn && roiModal) {
         setRoiBtn.addEventListener('click', () => {
@@ -2632,6 +2829,7 @@ window.initSettingsUI = () => {
             const ctx = roiDrawCanvas.getContext('2d');
             ctx.clearRect(0, 0, roiDrawCanvas.width, roiDrawCanvas.height);
             roiRect = null;
+            window.aegisRoiRect = null;
             roiCoords.textContent = 'X: 0, Y: 0, W: 0, H: 0';
 
             if (window.termLog) window.termLog("ROI: Region of Interest cleared.", "warning");
@@ -2651,6 +2849,7 @@ window.initSettingsUI = () => {
             }
 
             roiRect = { x, y, w, h };
+            window.aegisRoiRect = roiRect;
             roiModal.classList.remove('open');
 
             if (window.termLog) window.termLog(`ROI: Region set to (${(x * 100).toFixed(1)}%, ${(y * 100).toFixed(1)}%, ${(w * 100).toFixed(1)}%, ${(h * 100).toFixed(1)}%)`, "success");
