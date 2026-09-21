@@ -1968,12 +1968,28 @@ document.addEventListener('DOMContentLoaded', () => {
         let filteredRecords = records;
 
         if (dateVal) {
-            const [y, m, d] = dateVal.split('/');
-            filteredRecords = filteredRecords.filter(r =>
-                String(r.year) === y &&
-                String(r.month).padStart(2, '0') === m &&
-                String(r.day).padStart(2, '0') === d
-            );
+            if (dateVal.includes(' to ')) {
+                const [startStr, endStr] = dateVal.split(' to ');
+                const [sy, sm, sd] = startStr.split('/').map(Number);
+                const [ey, em, ed] = endStr.split('/').map(Number);
+                const startTime = new Date(sy, sm - 1, sd, 0, 0, 0, 0).getTime();
+                const endTime = new Date(ey, em - 1, ed, 23, 59, 59, 999).getTime();
+
+                filteredRecords = filteredRecords.filter(r => {
+                    let rTime = r.createdAt;
+                    if (!rTime && r.year) {
+                        rTime = new Date(r.year, (r.month || 1) - 1, r.day || 1, r.hour || 0, r.minute || 0, r.second || 0).getTime();
+                    }
+                    return rTime ? (rTime >= startTime && rTime <= endTime) : true;
+                });
+            } else if (dateVal.includes('/')) {
+                const [y, m, d] = dateVal.split('/');
+                filteredRecords = filteredRecords.filter(r =>
+                    String(r.year) === y &&
+                    String(r.month).padStart(2, '0') === m &&
+                    String(r.day).padStart(2, '0') === d
+                );
+            }
         }
         if (cameraVal) filteredRecords = filteredRecords.filter(r => r.cameraName === cameraVal);
         if (printerVal) filteredRecords = filteredRecords.filter(r => r.printerName === printerVal);
@@ -2175,22 +2191,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    renderHistoryRecords();
-    if (window.flatpickr) {
-        const fp = window.flatpickr('#filter-date', {
+    function initHistoryDatePicker() {
+        const dateEl = document.getElementById('filter-date');
+        if (!dateEl) return;
+        if (dateEl._flatpickr) return;
+        if (typeof window.flatpickr !== 'function') return;
+
+        const fp = window.flatpickr(dateEl, {
+            mode: 'range',
             dateFormat: 'Y/m/d',
-            minDate: '2026-01-01',
+            conjunction: ' to ',
+            minDate: '2020-01-01',
             maxDate: '2099-12-31',
+            disableMobile: true,
             onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2 || selectedDates.length === 0) {
+                    historyCurrentPage = 1;
+                    renderHistoryRecords();
+                }
+            },
+            onClose: function (selectedDates, dateStr, instance) {
+                historyCurrentPage = 1;
                 renderHistoryRecords();
             }
         });
-        const dateEl = document.getElementById('filter-date');
-        if (dateEl) dateEl._flatpickr = fp;
+        dateEl._flatpickr = fp;
     }
+
+    // Attach click events on input, wrapper, and label to guarantee opening calendar
+    const dateInputWrapper = document.getElementById('filter-date-wrapper');
+    if (dateInputWrapper) {
+        dateInputWrapper.addEventListener('click', (e) => {
+            initHistoryDatePicker();
+            const el = document.getElementById('filter-date');
+            if (el && el._flatpickr) {
+                el._flatpickr.open();
+            }
+        });
+    }
+
+    const dateLabel = document.querySelector('label[for="filter-date"]');
+    if (dateLabel) {
+        dateLabel.addEventListener('click', (e) => {
+            e.preventDefault();
+            initHistoryDatePicker();
+            const el = document.getElementById('filter-date');
+            if (el && el._flatpickr) {
+                el._flatpickr.open();
+            }
+        });
+    }
+
+    initHistoryDatePicker();
+    renderHistoryRecords();
 
     window.addEventListener('spa:view-loaded', (e) => {
         if (e.detail.viewId === 'view-history') {
+            initHistoryDatePicker();
             renderHistoryRecords();
         }
     });
@@ -2554,7 +2611,7 @@ window.initSettingsUI = () => {
     };
 
     // ── Settings field IDs for each page ──
-    const GENERAL_FIELDS = ['setting-language', 'setting-theme-toggle', 'setting-retention-days', 'setting-save-path', 'setting-auto-connect'];
+    const GENERAL_FIELDS = ['setting-language', 'setting-retention-days', 'setting-save-path', 'setting-auto-connect'];
     const CAMERA_FIELDS = ['cam-input-type', 'cam-rtsp-url', 'cam-flip', 'cam-mirror', 'cam-rotation', 'cam-brightness', 'cam-contrast', 'cam-saturation', 'cam-night-vision'];
     const MODEL_FIELDS = ['model-conf-thresh', 'model-nms-thresh', 'model-inference-engine', 'model-batch-size', 'model-max-fps', 'model-inference-interval'];
     const NOTIF_FIELDS = [
@@ -2573,7 +2630,6 @@ window.initSettingsUI = () => {
     // ── Factory Defaults / Revert ──
     const FACTORY_DEFAULTS = {
         'setting-language': 'en',
-        'setting-theme-toggle': true, // Dark mode default
         'setting-retention-days': '30',
         'setting-save-path': './records',
         'setting-auto-connect': false,
@@ -2627,7 +2683,6 @@ window.initSettingsUI = () => {
         });
         window.aegisSettingsDirty = true; // Reverting to factory counts as an unsaved change until Applied
         applyCameraVisuals();
-        applyTheme(FACTORY_DEFAULTS['setting-theme-toggle']);
         if (window.termLog) window.termLog("Settings reverted to factory defaults. Please Apply to save.", "warning");
     };
 
@@ -2684,22 +2739,7 @@ window.initSettingsUI = () => {
             }
         });
     };
-
-    const applyTheme = (isDark) => {
-        if (isDark) {
-            document.body.classList.remove('light-mode');
-        } else {
-            document.body.classList.add('light-mode');
-        }
-    };
-
-    // Theme toggle change listener
-    const themeToggle = document.getElementById('setting-theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('change', (e) => {
-            applyTheme(e.target.checked);
-        });
-    }
+    document.body.classList.remove('light-mode');
 
     // Camera RTSP container toggle
     const camInputType = document.getElementById('cam-input-type');
@@ -2916,8 +2956,6 @@ window.initSettingsUI = () => {
             const genConfig = JSON.parse(localStorage.getItem('aegis_settings_general'));
             if (genConfig) {
                 safeSet('setting-language', genConfig.language);
-                safeSet('setting-theme-toggle', genConfig.themeDark);
-                applyTheme(genConfig.themeDark !== false);
                 safeSet('setting-retention-days', genConfig.retentionDays);
                 safeSet('setting-save-path', genConfig.savePath);
                 safeSet('setting-auto-connect', genConfig.autoConnect);
@@ -2999,14 +3037,12 @@ window.initSettingsUI = () => {
             const savePath = safeGet('setting-save-path');
             const config = {
                 language: safeGet('setting-language'),
-                themeDark: safeGet('setting-theme-toggle'),
                 retentionDays: safeGet('setting-retention-days'),
                 retentionStartDate: Date.now(),
                 savePath: savePath,
                 autoConnect: safeGet('setting-auto-connect')
             };
             localStorage.setItem('aegis_settings_general', JSON.stringify(config));
-            applyTheme(config.themeDark);
             clearDirty();
 
             // Notify backend to create folder if it doesn't exist

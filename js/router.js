@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'settings_camera.html': 'view-settings-camera',
         'settings_model.html': 'view-settings-model',
         'settings_alert.html': 'view-settings-alert',
-        'user_profile.html': 'view-profile',
         'ai_chat.html': 'view-chat'
     };
 
@@ -150,11 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'settings_model.html': 'nav-settings-footer',
             'settings_alert.html': 'nav-settings-footer',
             'settings_camera.html': 'nav-settings-footer',
-            'user_profile.html': 'nav-profile-footer',
         };
 
         // Reset all nav links to inactive state
-        document.querySelectorAll('[data-nav], #nav-settings-footer, #nav-profile-footer').forEach(el => {
+        document.querySelectorAll('[data-nav], #nav-settings-footer').forEach(el => {
             el.classList.remove('text-primary', 'bg-primary-container/20', 'border-primary', 'bg-surface-bright/50', 'shadow-[0_0_10px_rgba(173,198,255,0.3)]');
             if (el.hasAttribute('data-nav')) {
                 el.classList.add('text-on-surface-variant', 'border-transparent');

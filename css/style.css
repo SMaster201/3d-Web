@@ -5,24 +5,21 @@
 
 /* === Base Reset & Body === */
 body {
-    background-color: #000;
+    background-color: #0b1326;
     color: #dae2fd;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
     min-height: 100vh;
     overflow: auto;
+    color-scheme: dark;
 }
 
-/* === App Container (1920x1080 viewport) === */
+/* === App Container (Fluid Viewport) === */
 #app-container {
-    width: 1920px;
-    min-height: 1080px;
+    width: 100%;
+    min-height: 100vh;
     position: relative;
     overflow: visible;
     background-color: #0b1326;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
 }
 
 /* === Glassmorphism Panel === */
@@ -114,7 +111,8 @@ body {
 /* === Toggle Switch === */
 .toggle-checkbox {
     top: 0;
-    left: 0; /* OFF position: Circle on Left */
+    left: 0;
+    /* OFF position: Circle on Left */
     z-index: 1;
     border-color: #414755;
     background-color: #ffffff;
@@ -122,7 +120,8 @@ body {
 }
 
 .toggle-checkbox:checked {
-    left: 1.5rem; /* ON position: Circle on Right */
+    left: 1.5rem;
+    /* ON position: Circle on Right */
     border-color: #4b8eff;
     background-color: #ffffff;
     box-shadow: 0 0 8px rgba(75, 142, 255, 0.5);
@@ -136,212 +135,12 @@ body {
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.toggle-checkbox:checked + .toggle-label {
+.toggle-checkbox:checked+.toggle-label {
     background-color: #4b8eff;
     box-shadow: 0 0 12px rgba(75, 142, 255, 0.3);
 }
 
-/* ============================================
-   Light Theme — Comprehensive Overhaul
-   ============================================ */
-body.light-mode {
-    background-color: #e0f0ff !important;
-    color: #0a1a3a !important;
-}
 
-body.light-mode #app-container {
-    background-color: #cce0ff !important;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Glass Panel */
-body.light-mode .glass-panel {
-    background: rgba(200, 230, 255, 0.6) !important;
-    backdrop-filter: blur(20px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.8) !important;
-    border-left: 1px solid rgba(148, 193, 255, 0.4) !important;
-    border-right: 1px solid rgba(148, 193, 255, 0.4) !important;
-    border-bottom: 1px solid rgba(148, 193, 255, 0.5) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Sidebar & Header */
-body.light-mode #sidebar {
-    background: linear-gradient(180deg, rgba(200, 230, 255, 0.95) 0%, rgba(180, 215, 255, 0.98) 100%) !important;
-    border-right: 1px solid rgba(148, 193, 255, 0.6) !important;
-    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04) !important;
-}
-
-body.light-mode #top-header {
-    background: rgba(200, 230, 255, 0.88) !important;
-    backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid rgba(148, 193, 255, 0.5) !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03) !important;
-}
-
-/* Text Colors */
-body.light-mode .text-on-surface {
-    color: #0a1a3a !important;
-}
-
-body.light-mode .text-on-surface-variant {
-    color: #334e7a !important;
-}
-
-body.light-mode .text-outline {
-    color: #5c85c2 !important;
-}
-
-body.light-mode .text-outline-variant {
-    color: #85aee6 !important;
-}
-
-/* Surface Containers */
-body.light-mode .bg-surface-container {
-    background-color: #b3d1ff !important;
-}
-
-body.light-mode .bg-surface-container-low {
-    background-color: #cce0ff !important;
-}
-
-body.light-mode .bg-surface-container-highest {
-    background-color: #99c2ff !important;
-}
-
-body.light-mode .bg-surface-dim {
-    background-color: #b3d1ff !important;
-}
-
-body.light-mode .bg-surface-bright {
-    background-color: #e6f2ff !important;
-}
-
-/* Data Cards */
-body.light-mode .data-card {
-    background: #e6f2ff !important;
-    border: 1px solid #b3d1ff !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
-}
-
-/* Form Inputs */
-body.light-mode select,
-body.light-mode input[type="text"],
-body.light-mode input[type="number"],
-body.light-mode textarea {
-    background-color: #d9eaff !important;
-    border-color: #99c2ff !important;
-    color: #0a1a3a !important;
-}
-
-body.light-mode select:focus,
-body.light-mode input[type="text"]:focus,
-body.light-mode input[type="number"]:focus {
-    border-color: #4b8eff !important;
-    box-shadow: 0 0 0 2px rgba(75, 142, 255, 0.15) !important;
-}
-
-/* Range Sliders */
-body.light-mode input[type="range"] {
-    background: #cbd5e1 !important;
-}
-
-/* Checkboxes */
-body.light-mode input[type="checkbox"]:not(.toggle-checkbox) {
-    background-color: #f1f5f9 !important;
-    border-color: #cbd5e1 !important;
-}
-
-/* Toggle in light mode */
-body.light-mode .toggle-label {
-    background-color: #94a3b8;
-}
-
-body.light-mode .toggle-checkbox:checked + .toggle-label {
-    background-color: #4b8eff;
-}
-
-body.light-mode .toggle-checkbox {
-    border-color: #94a3b8;
-}
-
-/* Border colors */
-body.light-mode .border-outline-variant\/20,
-body.light-mode .border-outline-variant\/30,
-body.light-mode .border-outline-variant\/40 {
-    border-color: rgba(203, 213, 225, 0.6) !important;
-}
-
-/* Notification Panel */
-body.light-mode .notification-panel {
-    background: rgba(255, 255, 255, 0.96) !important;
-    border: 1px solid rgba(203, 213, 225, 0.6) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 20px rgba(75, 142, 255, 0.05) !important;
-}
-
-body.light-mode .notification-panel .notif-header {
-    border-bottom: 1px solid rgba(203, 213, 225, 0.5) !important;
-    color: #64748b !important;
-}
-
-body.light-mode .notification-panel .notif-item {
-    border-bottom: 1px solid rgba(203, 213, 225, 0.3) !important;
-}
-
-body.light-mode .notification-panel .notif-item:hover {
-    background: rgba(75, 142, 255, 0.06) !important;
-}
-
-/* Scrollbars in light mode */
-body.light-mode ::-webkit-scrollbar-track {
-    background: rgba(241, 245, 249, 0.8);
-}
-
-body.light-mode ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.5);
-    border-radius: 4px;
-}
-
-body.light-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.7);
-}
-
-/* Terminal in light */
-body.light-mode .terminal-text {
-    text-shadow: none;
-}
-
-/* Lightbox in light mode */
-body.light-mode .lightbox-container {
-    background: rgba(255, 255, 255, 0.97) !important;
-    border: 1px solid rgba(203, 213, 225, 0.5) !important;
-}
-
-body.light-mode .lightbox-header,
-body.light-mode .lightbox-footer {
-    background: rgba(241, 245, 249, 0.9) !important;
-    border-color: rgba(203, 213, 225, 0.4) !important;
-}
-
-body.light-mode .lightbox-btn {
-    color: #64748b;
-}
-
-body.light-mode .lightbox-btn:hover {
-    background: rgba(75, 142, 255, 0.1);
-    color: #3b82f6;
-}
-
-/* Scan line in light mode */
-body.light-mode .scan-line::after {
-    background: linear-gradient(90deg, transparent, rgba(75, 142, 255, 0.15), transparent);
-}
-
-/* Hover effects */
-body.light-mode .hover\:bg-surface-container-high:hover {
-    background-color: #dde4ee !important;
-}
 
 /* ============================================
    Camera PiP (Picture-in-Picture)
@@ -370,7 +169,8 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     display: none !important;
 }
 
-#camera-pip video, #camera-pip canvas {
+#camera-pip video,
+#camera-pip canvas {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -386,7 +186,7 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     align-items: center;
     justify-content: space-between;
     padding: 6px 10px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
     z-index: 2;
     pointer-events: auto;
 }
@@ -397,7 +197,7 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -418,7 +218,7 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     border-radius: 50%;
     border: none;
     background: rgba(255, 255, 255, 0.15);
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -441,7 +241,7 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     border-radius: 8px;
     border: none;
     background: rgba(0, 0, 0, 0.5);
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -456,10 +256,6 @@ body.light-mode .hover\:bg-surface-container-high:hover {
     color: #fff;
 }
 
-body.light-mode #camera-pip {
-    border-color: rgba(75, 142, 255, 0.5);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 0 20px rgba(75, 142, 255, 0.1);
-}
 
 /* ============================================
    ROI Modal
@@ -505,11 +301,6 @@ body.light-mode #camera-pip {
     transform: scale(1);
 }
 
-body.light-mode .roi-modal-container {
-    background: rgba(255, 255, 255, 0.97) !important;
-    border: 1px solid rgba(203, 213, 225, 0.6) !important;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15) !important;
-}
 
 /* ============================================
    Unsaved Changes Modal
@@ -556,11 +347,6 @@ body.light-mode .roi-modal-container {
     transform: scale(1);
 }
 
-body.light-mode .unsaved-modal-box {
-    background: rgba(255, 255, 255, 0.97) !important;
-    border: 1px solid rgba(203, 213, 225, 0.6) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
-}
 
 #sidebar {
     position: absolute !important;
@@ -898,4 +684,172 @@ body.light-mode .unsaved-modal-box {
 .lightbox-btn-close:hover {
     background: rgba(255, 68, 68, 0.2);
     color: #ffb4ab;
+}
+
+/* ============================================
+   Aegis Vision — Flatpickr Custom Theme Overrides
+   ============================================ */
+.flatpickr-calendar {
+    background: rgba(15, 23, 42, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(173, 198, 255, 0.25) !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(173, 198, 255, 0.15) !important;
+    border-radius: 12px !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    z-index: 999999 !important;
+    padding: 8px !important;
+    width: 320px !important;
+}
+
+.flatpickr-calendar::before,
+.flatpickr-calendar::after {
+    border-bottom-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+.flatpickr-months {
+    border-bottom: 1px solid lab(30.12% 1.08 -9.14 / 0.4) !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 4px !important;
+    background: transparent !important;
+}
+
+.flatpickr-months .flatpickr-month {
+    color: #dae2fd !important;
+    fill: #dae2fd !important;
+    height: 36px !important;
+    background: transparent !important;
+}
+
+.flatpickr-current-month {
+    font-size: 13px !important;
+    color: #adc6ff !important;
+    padding-top: 4px !important;
+    background: transparent !important;
+}
+
+.flatpickr-current-month .cur-month {
+    font-weight: 700 !important;
+    color: #adc6ff !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: transparent !important;
+    color: #adc6ff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+    background: rgba(173, 198, 255, 0.1) !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months option {
+    background: rgba(15, 23, 42, 0.96) !important;
+    color: #adc6ff !important;
+}
+
+.flatpickr-current-month input.cur-year {
+    font-weight: 700 !important;
+    color: #adc6ff !important;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    color: #adc6ff !important;
+    fill: #adc6ff !important;
+    padding: 6px !important;
+    border-radius: 6px !important;
+    transition: background-color 0.2s ease !important;
+    top: 8px !important;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    background: rgba(173, 198, 255, 0.15) !important;
+}
+
+.flatpickr-weekdays {
+    margin-top: 4px !important;
+    background: transparent !important;
+}
+
+.flatpickr-weekdays .flatpickr-weekdaycontainer {
+    background: transparent !important;
+}
+
+span.flatpickr-weekday {
+    color: #8b90a0 !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    background: transparent !important;
+}
+
+.flatpickr-days {
+    width: 100% !important;
+}
+
+.dayContainer {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+
+.flatpickr-day {
+    color: #dae2fd !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    height: 36px !important;
+    line-height: 34px !important;
+    margin: 1px 0 !important;
+    border: 1px solid transparent !important;
+    transition: all 0.15s ease !important;
+}
+
+.flatpickr-day:hover {
+    background: rgba(173, 198, 255, 0.2) !important;
+    border-color: #adc6ff !important;
+    color: #ffffff !important;
+}
+
+.flatpickr-day.today {
+    border-color: #4edea3 !important;
+    color: #4edea3 !important;
+}
+
+.flatpickr-day.today:hover {
+    background: rgba(78, 222, 163, 0.2) !important;
+    color: #ffffff !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+    background: #adc6ff !important;
+    color: #00285c !important;
+    font-weight: 700 !important;
+    border-color: #adc6ff !important;
+    box-shadow: 0 0 10px rgba(173, 198, 255, 0.5) !important;
+}
+
+.flatpickr-day.inRange {
+    background: rgba(75, 142, 255, 0.25) !important;
+    border-color: transparent !important;
+    color: #adc6ff !important;
+    box-shadow: -5px 0 0 rgba(75, 142, 255, 0.25), 5px 0 0 rgba(75, 142, 255, 0.25) !important;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay,
+.flatpickr-day.flatpickr-disabled {
+    color: rgba(139, 144, 160, 0.35) !important;
+}
+
+/* === Select Options Theme === */
+select option {
+    background-color: #171f33; /* surface-container */
+    color: #dae2fd; /* on-surface */
 }
