@@ -3314,8 +3314,410 @@ window.initUnsavedWarning = () => {
     });
 };
 
+// ── AI Chat with Ollama ──
+window.initAIChat = () => {
+    const OLLAMA_BASE = 'http://localhost:11434';
+    const chatLog = document.getElementById('chat-log');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const modelSelect = document.getElementById('ollama-model-select');
+    const statusBadge = document.getElementById('ollama-status-badge');
+    const btnNewChat = document.getElementById('btn-new-chat');
+
+    if (!chatLog || !chatInput || !chatSendBtn || !modelSelect) return;
+
+    let chatHistory = [];
+    let isGenerating = false;
+    let currentAbortController = null;
+
+    // ── Ollama status & model list ──
+    async function fetchOllamaModels() {
+        try {
+            const res = await fetch(`${OLLAMA_BASE}/api/tags`);
+            if (!res.ok) throw new Error('Ollama not reachable');
+            const data = await res.json();
+            const models = data.models || [];
+
+            // Clear existing options except the placeholder
+            modelSelect.innerHTML = '';
+            
+            // Filter out known embedding models that cannot be used for generation
+            const chatModels = models.filter(m => {
+                const name = m.name.toLowerCase();
+                return !name.includes('embed') && !name.includes('bge-m3');
+            });
+
+            if (chatModels.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.disabled = true;
+                opt.selected = true;
+                opt.textContent = models.length > 0 ? 'No chat models found' : 'No models found';
+                modelSelect.appendChild(opt);
+                setOllamaStatus(true, false);
+                return;
+            }
+
+            chatModels.forEach((m, i) => {
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                // Show clean name without tag if it's :latest
+                opt.textContent = m.name.replace(':latest', '');
+                if (i === 0) opt.selected = true;
+                modelSelect.appendChild(opt);
+            });
+
+            setOllamaStatus(true, true);
+        } catch (e) {
+            modelSelect.innerHTML = '<option value="" disabled selected>Ollama not running</option>';
+            setOllamaStatus(false, false);
+        }
+    }
+
+    function setOllamaStatus(connected, hasModels) {
+        if (!statusBadge) return;
+        if (connected && hasModels) {
+            statusBadge.textContent = 'Online';
+            statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-label-mono bg-secondary/10 text-secondary border border-secondary/20 uppercase tracking-widest';
+        } else if (connected && !hasModels) {
+            statusBadge.textContent = 'No Models';
+            statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-label-mono bg-[#ffb74d]/10 text-[#ffb74d] border border-[#ffb74d]/20 uppercase tracking-widest';
+        } else {
+            statusBadge.textContent = 'Offline';
+            statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-label-mono bg-outline/10 text-outline border border-outline/20 uppercase tracking-widest';
+        }
+    }
+
+    // ── System Prompt generation ──
+    function buildSystemPrompt() {
+        const state = window.aegisSystemState || {};
+        const cameraSelect = document.getElementById('camera-select');
+        const yoloModelSelect = document.getElementById('model-select');
+        const cameraName = (cameraSelect && cameraSelect.value) ? cameraSelect.options[cameraSelect.selectedIndex]?.textContent : 'Not loaded';
+        const yoloModel = (yoloModelSelect && yoloModelSelect.value && yoloModelSelect.value !== '__add_model__') ? yoloModelSelect.options[yoloModelSelect.selectedIndex]?.textContent : 'Not loaded';
+
+        const recStateEl = document.getElementById('rec-status');
+        const sessionStatus = window.recState || 'IDLE';
+
+        // Try to get detection count from history
+        let detectionCount = 'N/A';
+        const totalCountEl = document.getElementById('history-total-count');
+        if (totalCountEl) detectionCount = totalCountEl.textContent || '0';
+
+        // Backend connection status
+        const backendStatus = state.cameraOnline || state.modelOnline ? 'Connected' : 'Unknown';
+
+        // Settings
+        const confEl = document.getElementById('model-conf-val');
+        const nmsEl = document.getElementById('model-nms-val');
+        const engineEl = document.getElementById('model-inference-engine');
+        const conf = confEl ? confEl.textContent : 'N/A';
+        const nms = nmsEl ? nmsEl.textContent : 'N/A';
+        const engine = engineEl ? engineEl.value : 'N/A';
+
+        return `You are Aegis Vision AI Assistant, an intelligent assistant built into the Aegis Vision Command Center — a real-time surveillance monitoring, edge AI inference, and tactical control system.
+
+Current System State:
+- Camera: ${cameraName}
+- Camera Online: ${state.cameraOnline ? 'Yes' : 'No'}
+- YOLO Inference Model: ${yoloModel}
+- Model Online: ${state.modelOnline ? 'Yes' : 'No'}
+- Session Status: ${sessionStatus}
+- Total Detection Records: ${detectionCount}
+- Backend: ${backendStatus}
+- Confidence Threshold: ${conf}
+- NMS Threshold: ${nms}
+- Inference Engine: ${engine}
+
+Your responsibilities:
+1. Answer questions about the current system status (cameras, models, detections, settings).
+2. Help users troubleshoot issues (camera not loading, model errors, etc.).
+3. Provide guidance on how to use the Aegis Vision system.
+4. Give concise, professional, and helpful responses.
+
+When the user asks about the system, use the Current System State above to provide accurate, contextual answers.
+Respond in the same language the user uses (e.g., if the user writes in Chinese, respond in Chinese).
+Keep responses concise and well-formatted. Use markdown when helpful.`;
+    }
+
+    // ── Markdown rendering (basic) ──
+    function renderMarkdown(text) {
+        let html = text
+            // Code blocks (```)
+            .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+                return `<pre class="bg-surface-dim/80 rounded-lg p-3 my-2 overflow-x-auto border border-outline-variant/20"><code class="text-xs font-label-mono text-secondary">${escapeHtml(code.trim())}</code></pre>`;
+            })
+            // Inline code
+            .replace(/`([^`]+)`/g, '<code class="bg-surface-dim/80 px-1.5 py-0.5 rounded text-xs font-label-mono text-secondary">$1</code>')
+            // Bold
+            .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-on-surface">$1</strong>')
+            // Italic
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+        return html;
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Render user message ──
+    function appendUserMessage(text) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-end';
+        wrapper.innerHTML = `
+            <div class="max-w-[70%] px-4 py-3 rounded-2xl rounded-br-md bg-primary/20 text-on-surface border border-primary/30">
+                <p class="text-sm font-label-mono leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // ── Render AI message (returns the content element for streaming) ──
+    function appendAIMessage() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-start gap-3';
+        wrapper.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1 border border-primary/30">
+                <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+            </div>
+            <div class="max-w-[75%]">
+                <div class="px-4 py-3 rounded-2xl rounded-bl-md bg-surface-container-high/60 text-on-surface border border-outline-variant/20">
+                    <div class="ai-content text-sm font-label-mono leading-relaxed">
+                        <span class="typing-dots flex gap-1 items-center h-5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style="animation-delay: 0ms;"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style="animation-delay: 150ms;"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style="animation-delay: 300ms;"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        return wrapper.querySelector('.ai-content');
+    }
+
+    // ── Welcome message ──
+    function showWelcomeMessage() {
+        if (chatLog.children.length > 0) return;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-start gap-3';
+        wrapper.id = 'chat-welcome';
+        wrapper.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1 border border-primary/30">
+                <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+            </div>
+            <div class="max-w-[75%]">
+                <div class="px-4 py-3 rounded-2xl rounded-bl-md bg-surface-container-high/60 text-on-surface border border-outline-variant/20">
+                    <p class="text-sm font-label-mono leading-relaxed text-on-surface-variant">
+                        <strong class="text-on-surface">Hello!</strong> I'm Aegis Vision AI Assistant.<br>
+                        I can answer questions about your system status, help troubleshoot issues, or provide guidance on using the platform.<br><br>
+                        <span class="text-outline text-xs">Select a model above and start chatting.</span>
+                    </p>
+                </div>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+    }
+
+    // ── Send message & stream response ──
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text || isGenerating) return;
+
+        const selectedModel = modelSelect.value;
+        if (!selectedModel) {
+            appendSystemNotice('Please select a model first.');
+            return;
+        }
+
+        // Remove welcome message
+        const welcomeEl = document.getElementById('chat-welcome');
+        if (welcomeEl) welcomeEl.remove();
+
+        // Render user message
+        appendUserMessage(text);
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+
+        // Add to history
+        chatHistory.push({ role: 'user', content: text });
+
+        // Create AI response container
+        const aiContent = appendAIMessage();
+        isGenerating = true;
+        updateSendButton();
+
+        try {
+            currentAbortController = new AbortController();
+
+            const messages = [
+                { role: 'system', content: buildSystemPrompt() },
+                ...chatHistory
+            ];
+
+            const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: selectedModel,
+                    messages: messages,
+                    stream: true
+                }),
+                signal: currentAbortController.signal
+            });
+
+            if (!res.ok) {
+                throw new Error(`Ollama returned ${res.status}`);
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let buffer = '';
+
+            // Remove typing dots
+            const dotsEl = aiContent.querySelector('.typing-dots');
+            if (dotsEl) dotsEl.remove();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const chunk = JSON.parse(line);
+                        if (chunk.message && chunk.message.content) {
+                            fullResponse += chunk.message.content;
+                            aiContent.innerHTML = renderMarkdown(fullResponse);
+                            chatLog.scrollTop = chatLog.scrollHeight;
+                        }
+                        if (chunk.done) break;
+                    } catch (parseErr) {
+                        // Skip invalid JSON lines
+                    }
+                }
+            }
+
+            // Process any remaining buffer
+            if (buffer.trim()) {
+                try {
+                    const chunk = JSON.parse(buffer);
+                    if (chunk.message && chunk.message.content) {
+                        fullResponse += chunk.message.content;
+                        aiContent.innerHTML = renderMarkdown(fullResponse);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            // Add assistant response to history
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+
+        } catch (err) {
+            const dotsEl = aiContent.querySelector('.typing-dots');
+            if (dotsEl) dotsEl.remove();
+
+            if (err.name === 'AbortError') {
+                aiContent.innerHTML = '<span class="text-outline text-xs italic">Response cancelled.</span>';
+            } else {
+                aiContent.innerHTML = `<span class="text-error text-xs">Error: ${escapeHtml(err.message)}</span><br><span class="text-outline text-xs">Make sure Ollama is running at ${OLLAMA_BASE}</span>`;
+            }
+        } finally {
+            isGenerating = false;
+            currentAbortController = null;
+            updateSendButton();
+        }
+    }
+
+    function appendSystemNotice(text) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex justify-center';
+        wrapper.innerHTML = `
+            <div class="px-4 py-2 rounded-full bg-surface-container-high/40 border border-outline-variant/20">
+                <p class="text-xs font-label-mono text-outline">${escapeHtml(text)}</p>
+            </div>
+        `;
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function updateSendButton() {
+        if (isGenerating) {
+            chatSendBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">stop</span>';
+            chatSendBtn.classList.add('bg-error');
+            chatSendBtn.classList.remove('bg-primary');
+        } else {
+            chatSendBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">send</span>';
+            chatSendBtn.classList.remove('bg-error');
+            chatSendBtn.classList.add('bg-primary');
+        }
+    }
+
+    // ── New chat ──
+    function clearChat() {
+        chatHistory = [];
+        chatLog.innerHTML = '';
+        showWelcomeMessage();
+    }
+
+    // ── Event listeners ──
+    chatSendBtn.addEventListener('click', () => {
+        if (isGenerating && currentAbortController) {
+            currentAbortController.abort();
+        } else {
+            sendMessage();
+        }
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Textarea auto-resize
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+    });
+
+    if (btnNewChat) {
+        btnNewChat.addEventListener('click', clearChat);
+    }
+
+    // ── Refresh models when view becomes visible ──
+    window.addEventListener('spa:view-loaded', (e) => {
+        if (e.detail && e.detail.viewId === 'view-chat') {
+            fetchOllamaModels();
+            showWelcomeMessage();
+        }
+    });
+
+    // Initial load
+    fetchOllamaModels();
+    showWelcomeMessage();
+
+    // Periodically check Ollama status (every 30s)
+    setInterval(() => {
+        const chatView = document.getElementById('view-chat');
+        if (chatView && !chatView.classList.contains('hidden')) {
+            fetchOllamaModels();
+        }
+    }, 30000);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     if (window.initSettingsUI) window.initSettingsUI();
     if (window.initCameraPiP) window.initCameraPiP();
     if (window.initUnsavedWarning) window.initUnsavedWarning();
+    if (window.initAIChat) window.initAIChat();
 });

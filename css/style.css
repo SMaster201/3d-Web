@@ -130,14 +130,14 @@ body {
 .toggle-label {
     width: 3rem;
     height: 1.5rem;
-    background-color: #2d3449;
+    background-color: #2d3449 !important;
     border-radius: 9999px;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .toggle-checkbox:checked+.toggle-label {
-    background-color: #4b8eff;
-    box-shadow: 0 0 12px rgba(75, 142, 255, 0.3);
+    background-color: #4b8eff !important;
+    box-shadow: 0 0 12px rgba(75, 142, 255, 0.3) !important;
 }
 
 
